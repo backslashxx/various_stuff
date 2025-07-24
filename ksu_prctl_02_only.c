@@ -11,18 +11,15 @@ int main() {
 
 	if (arg3 > 10000) {
 		// dumb long to char
-		char a = (arg3 % 100000) / 10000;
-		char b = (arg3 - a * 10000) / 1000;
-		char c = (arg3 - a * 10000 - b * 1000) / 100;
-		char d = (arg3 - a * 10000 - b * 1000 - c * 100) / 10;
-		char e = (arg3 - a * 10000 - b * 1000 - c * 100 - d * 10);
-
 		char digits[6];
-		digits[0] = 48 + a;
-		digits[1] = 48 + b;
-		digits[2] = 48 + c;
-		digits[3] = 48 + d;
-		digits[4] = 48 + e;
+		int i = 4;
+		arg3 = arg3 % 100000; // oob filter
+		do {
+			digits[i] = 48 + (arg3 % 10);
+			arg3 = arg3 / 10;
+			i--;			
+		} while (i >= 0);
+
 		digits[5] = '\n';
 		syscall(SYS_write, 1, digits, 6);
 	} else
