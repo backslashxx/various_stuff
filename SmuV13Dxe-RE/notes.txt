@@ -1,0 +1,152 @@
+SmuV13Dxe PBO powerlimits
+AGESA 1.2.0.3e, tested on AsRock B650M-PGL 3.30
+
+hex-LE, hex, dec
+
+d0 78 02, 0x0278d0, 162000
+c0 d4 01, 0x01d4c0, 120000
+20 bf 02, 0x02bf20, 180000
+
+
+02 78 D0 00 78 00 00 h, 02 BF 20 00 01 D4 C0 h,
+
+whats 78 00 00?
+78h is 120 decimal, doesnt make sense
+
+
+seg000:000000000000B6E4 off_B6E4        dd offset loc_7A28      ; DATA XREF: sub_CB0+C0↑o
+seg000:000000000000B6E8                 dq 7B6400000000h, 2D000000000000h, 177000000AFC8h, 500013880h
+seg000:000000000000B6E8                 dq 640000012Ch, 271000001A5E0h, 0D6D800370000h, 14C0800018E70h
+seg000:000000000000B6E8                 dq 12C00000005h, 1A5E000000064h, 4B000000027100h, 1A5E0000124F8h
+seg000:000000000000B6E8                 dq 500015F90h, 640000012Ch, 271000001A5E0h, 4 dup(0)
+seg000:000000000000B780                 dq 41000000000000h, 124F8000156F8h, 5F000249F0h, 1F52C005F0000h
+seg000:000000000000B780                 dq 27100000186A0h, 6900000000005Fh, 1ADB0000229E8h, 5F00029810h
+seg000:000000000000B780                 dq 278D000780000h, 2BF200001D4C0h, 0AA00000000005Fh, 271000003807Ch
+seg000:000000000000B780                 dq 5F00036EE8h, 3 dup(0)
+
+^ text section?? looks like, likely a struct
+
+seg000:0000000000007A28 loc_7A28:                               ; DATA XREF: seg000:off_B6E4↓o
+seg000:0000000000007A28                 pop     rsi
+seg000:0000000000007A29                 pop     rdi
+seg000:0000000000007A2A                 pop     rsi
+seg000:0000000000007A2B                 retn
+
+then
+
+mov     [rsp-8+arg_8], rdx
+mov     [rsp-8+arg_0], rcx
+push    rbp
+push    rbx
+push    rsi
+push    rdi
+push    r14
+push    r15
+lea     rbp, [rsp-2Fh]
+sub     rsp, 0A8h
+xor     r15d, r15d
+mov     ecx, 0A912h
+mov     sil, r15b
+call    sub_8070
+lea     r8, aSmuv13dxeentry ; "SmuV13DxeEntry"
+mov     rcx, 4000000000000h
+lea     rdx, aA         ; "%a\n"
+call    sub_8674
+mov     eax, 0FFFFFFFFh
+mov     [rbp+57h+var_80], r15
+xor     r9d, r9d
+mov     [rbp+57h+arg_18], rax
+lea     r8, [rbp+57h+arg_8]
+mov     dword ptr [rbp+57h+arg_8], r15d
+xor     edx, edx
+mov     [rsp+0D0h+var_B0], r15
+mov     ecx, 80000001h
+call    sub_2E4
+mov     ecx, dword ptr [rbp+57h+arg_8]
+lea     r8d, [r15+1]
+shr     ecx, 1Ch
+lea     rdx, aPackagetypeD ; "PackageType = %d\n"
+shl     r8d, cl
+mov     rcx, 4000000000000h
+call    sub_8674
+mov     rax, cs:qword_F094
+lea     r9, dword_B644
+xor     r8d, r8d
+lea     rdx, loc_B5D0+4
+lea     rcx, [rbp+57h+var_80]
+call    qword ptr [rax+80h]
+mov     rax, cs:qword_F094
+lea     r9, off_B6E4                                     << here is our stack data
+xor     r8d, r8d
+lea     rdx, unk_B4D4
+lea     rcx, [rbp+57h+var_80]
+call    qword ptr [rax+80h]
+mov     rax, cs:qword_F094
+lea     r9, dword_B69C
+xor     r8d, r8d
+lea     rdx, unk_B564
+lea     rcx, [rbp+57h+var_80]
+call    qword ptr [rax+80h]
+mov     rax, cs:qword_F094
+lea     r8, qword_F074
+xor     edx, edx
+lea     rcx, unk_B5A4
+call    qword ptr [rax+140h]
+lea     rcx, [rbp+57h+var_58]
+call    sub_4C10
+mov     eax, 0B40F00h                             = this is granite ridge cpuid
+mov     byte ptr [rbp+57h+arg_8+4], r15b          = memzero_explicit?
+lea     rcx, [rbp+57h+arg_8]
+mov     dword ptr [rbp+57h+arg_8], eax            ?? store it?
+mov     [rbp+57h+var_60], eax                     "
+mov     [rbp+57h+var_5C], 1                       set a flag to 1
+call    sub_9988                                  seems to be a cpuid test to me, something like strstarts but hex
+test    al, al
+jnz     short loc_E07
+
+--
+so off_B6E4 should be modified before 
+call    qword ptr [rax+80h]
+
+
+so somwhere here
+
+mov     ecx, dword ptr [rbp+57h+arg_8]         = likely packagetype flag
+lea     r8d, [r15+1]
+shr     ecx, 1Ch
+lea     rdx, aPackagetypeD ; "PackageType = %d\n"
+shl     r8d, cl
+
+
+--
+
+but, theres some special handling for GNR
+
+mov     eax, 0B40F00h                             = this is granite ridge es? cpuid, B40F40
+mov     byte ptr [rbp+57h+arg_8+4], r15b          = memzero_explicit?
+lea     rcx, [rbp+57h+arg_8]
+mov     dword ptr [rbp+57h+arg_8], eax            ?? store it?
+mov     [rbp+57h+var_60], eax                     
+mov     [rbp+57h+var_5C], 1                       set a flag to 1
+call    sub_9988                                  seems to be a cpuid test to me, something like strstarts but hex
+test    al, al
+jnz     short loc_E07
+
+
+
+are we gnr?
+if we gnr, memset it then write 1 to it, then call sub 9988
+
+so basically
+
+struct arg_8 {
+	uint32 cpuid;
+	uint8 flag;
+	... maybe more
+}
+
+-- just extra
+
+
+
+
