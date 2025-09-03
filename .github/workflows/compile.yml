@@ -30,9 +30,9 @@ jobs:
           chmod +x sstrip
           mkdir binaries
 
-          ./zig/zig cc -target arm-linux -s -Oz ksu_prctl_test/ksu_prctl.c -static -Wl,--gc-sections -o binaries/prctl-small-arm
-          ./zig/zig cc -target aarch64-linux -s -Oz ksu_prctl_test/ksu_prctl.c -static -Wl,--gc-sections -o binaries/prctl-small-arm64
-          ./zig/zig cc -target x86_64-linux -s -Oz ksu_prctl_test/ksu_prctl.c -static -Wl,--gc-sections -o binaries/prctl-small-x64
+          ./zig/zig cc -target arm-linux -s -Oz ksu_prctl_test/ksu_prctl_string.c -static -Wl,--gc-sections -o binaries/prctl-small-arm
+          ./zig/zig cc -target aarch64-linux -s -Oz ksu_prctl_test/ksu_prctl_string.c -static -Wl,--gc-sections -o binaries/prctl-small-arm64
+          ./zig/zig cc -target x86_64-linux -s -Oz ksu_prctl_test/ksu_prctl_string.c -static -Wl,--gc-sections -o binaries/prctl-small-x64
 
           wc -c binaries/prctl-*
           
