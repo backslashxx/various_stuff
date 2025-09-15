@@ -3,6 +3,12 @@
 #include <sys/syscall.h>
 #include <unistd.h>
 
+// to add to umount list
+// ./prctl 0xdeadbeef 10001 /system/etc/hosts
+
+// to de-register ext4 node of target path
+// ./prctl 0xdeadbeef 10002 /mnt/vendor/mountify 
+
 int main(int argc, char *argv[]) {
 	if (argc != 4) {
 		printf("Usage: %s <option> <option> <string>\n", argv[0]);
