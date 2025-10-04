@@ -1,14 +1,17 @@
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <unistd.h>
 #include <sys/syscall.h>
 #include <time.h>
+#include <sched.h>
+#include <sys/types.h>
 
 // zig cc -target aarch64-linux -Oz -s -static prctl_bench.c -Wl,--gc-sections -o bench
 // taskset -c 0 ./bench
 
-#define N_ITERATIONS 250000
+#define N_ITERATIONS 25000
 #define N_FAKE 20
 
 // https://github.com/wtarreau/mhz/blob/master/mhz.c
@@ -33,6 +36,11 @@ static inline void prctl_call(unsigned long option) {
 }
 
 int main() {
+	cpu_set_t cpuset;
+	CPU_ZERO(&cpuset);
+	CPU_SET(0, &cpuset);
+	sched_setaffinity(0, sizeof(cpuset), &cpuset);
+
 	unsigned long long t_start, t_end;
 	unsigned long long total_kernelsu_option_time = 0;
 	unsigned long long kernelsu_option = 0;
