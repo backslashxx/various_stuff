@@ -11,8 +11,7 @@
 // zig cc -target aarch64-linux -Oz -s -static prctl_bench.c -Wl,--gc-sections -o bench
 // taskset -c 0 ./bench
 
-#define N_ITERATIONS 25000
-#define N_FAKE 20
+#define N_ITERATIONS 250000
 
 // https://github.com/wtarreau/mhz/blob/master/mhz.c
 __attribute__((always_inline, always_inline))
@@ -41,9 +40,9 @@ int main() {
 	CPU_SET(0, &cpuset);
 	sched_setaffinity(0, sizeof(cpuset), &cpuset);
 
-	unsigned long long t_start, t_end;
+	unsigned long long t_start, t_end, t_start_decoy, t_end_decoy, total_decoy_time;
 	unsigned long long total_kernelsu_option_time = 0;
-	unsigned long long kernelsu_option = 0;
+	unsigned long long kernelsu_option = 0, decoy_count = 0;
 
 	unsigned long long total_nop_prctl_time = 0;
 	unsigned long long t_start_nop, t_end_nop;
@@ -60,27 +59,28 @@ int main() {
 
 	int i = 0;
 	do {
-		int j = 0;
-		do {
-			prctl_call((unsigned long)0xDEADBEED);
-			prctl_call((unsigned long)0xDEADBEEE);
-			prctl_call((unsigned long)0xDEADBEED);
-			prctl_call((unsigned long)0xDEADBEEE);
-			prctl_call((unsigned long)0xDEADBEED);
-			prctl_call((unsigned long)0xDEADBEEE);
-			t_start = time_now_ns();
-			prctl_call((unsigned long)0xDEADBEEF);
-			t_end = time_now_ns();
-			total_kernelsu_option_time = total_kernelsu_option_time + (t_end - t_start);
-			kernelsu_option = kernelsu_option + 1;
-			asm volatile("nop");
-			j = j + 1;
-		} while (j < N_FAKE);
+		t_start_decoy = time_now_ns();
+		prctl_call((unsigned long)0xDEADBEED);
+		prctl_call((unsigned long)0xDEADBEEE);
+		prctl_call((unsigned long)0xDEADBEED);
+		prctl_call((unsigned long)0xDEADBEEE);
+		prctl_call((unsigned long)0xDEADBEED);
+		prctl_call((unsigned long)0xDEADBEEE);
+		t_start = time_now_ns();
+		t_end_decoy = t_start;
+		prctl_call((unsigned long)0xDEADBEEF);
+		t_end = time_now_ns();
+		total_kernelsu_option_time = total_kernelsu_option_time + (t_end - t_start);
+		total_decoy_time = total_decoy_time + (t_end_decoy - t_start_decoy);
+		kernelsu_option = kernelsu_option + 1;
+		decoy_count = decoy_count + 6;
+		asm volatile("nop");
 		i = i + 1;
 	} while (i < N_ITERATIONS);
 
 	long long avg_nop_prctl_ns = (long long)(total_nop_prctl_time / k);
 	long long avg_real_ns = (long long)(total_kernelsu_option_time / kernelsu_option);
+	long long avg_decoy_ns = (long long)(total_decoy_time / decoy_count);
 	
 	double ratio = (double)avg_real_ns / avg_nop_prctl_ns;
 	double percent_overhead = (ratio - 1.0) * 100.0;
@@ -90,6 +90,7 @@ int main() {
 
 	printf("iterations: %d\n", N_ITERATIONS);
 	printf("average 0xFFFFFFFF: %lld ns\n", avg_nop_prctl_ns);
+	printf("average ~0xDEADBEEF: %lld ns\n", avg_decoy_ns);
 	printf("average 0xDEADBEEF: %lld ns\n", avg_real_ns);
 	printf("0xDEADBEEF/0xFFFFFFFF: %.2f%%\n", percent_overhead);
 
