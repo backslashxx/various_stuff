@@ -6,8 +6,9 @@
 #include <time.h>
 
 // zig cc -target aarch64-linux -Oz -s -static prctl_bench.c -Wl,--gc-sections -o bench
+// taskset -c 0 ./bench
 
-#define N_ITERATIONS 25000
+#define N_ITERATIONS 250000
 #define N_FAKE 20
 
 // https://github.com/wtarreau/mhz/blob/master/mhz.c
@@ -39,6 +40,7 @@ int main() {
 	unsigned long long total_nop_prctl_time = 0;
 	unsigned long long t_start_nop, t_end_nop;
 
+
 	int k = 0;
 	do {
 		t_start_nop = time_now_ns();
@@ -46,13 +48,16 @@ int main() {
 		t_end_nop = time_now_ns();
 		total_nop_prctl_time = total_nop_prctl_time + (t_end_nop - t_start_nop);
 		k++;
-	} while (k < (N_ITERATIONS * N_FAKE ));
+	} while (k < N_ITERATIONS);
 
 	int i = 0;
 	do {
 		int j = 0;
 		do {
-			// spec exec abuse
+			prctl_call((unsigned long)0xDEADBEED);
+			prctl_call((unsigned long)0xDEADBEEE);
+			prctl_call((unsigned long)0xDEADBEED);
+			prctl_call((unsigned long)0xDEADBEEE);
 			prctl_call((unsigned long)0xDEADBEED);
 			prctl_call((unsigned long)0xDEADBEEE);
 			t_start = time_now_ns();
@@ -63,7 +68,6 @@ int main() {
 			asm volatile("nop");
 			j = j + 1;
 		} while (j < N_FAKE);
-		asm volatile("" ::: "memory"); 
 		i = i + 1;
 	} while (i < N_ITERATIONS);
 
@@ -72,14 +76,14 @@ int main() {
 	
 	double ratio = (double)avg_real_ns / avg_nop_prctl_ns;
 	double percent_overhead = (ratio - 1.0) * 100.0;
-	if (percent_overhead < 0) // absolute value
-		percent_overhead = percent_overhead * -1 ;
+	//if (percent_overhead < 0) // absolute value
+	//	percent_overhead = percent_overhead * -1 ;
 	
 
 	printf("iterations: %d\n", N_ITERATIONS);
 	printf("average 0xFFFFFFFF: %lld ns\n", avg_nop_prctl_ns);
 	printf("average 0xDEADBEEF: %lld ns\n", avg_real_ns);
-	printf("0xDEADBEEF/0xFFFFFFFF: +%.2f%%\n", percent_overhead);
+	printf("0xDEADBEEF/0xFFFFFFFF: %.2f%%\n", percent_overhead);
 
 	if (percent_overhead >= 3.0)
 		printf("confidence: high\n");
@@ -88,7 +92,7 @@ int main() {
 	else if (percent_overhead > 1.0)
 		printf("confidence: low\n");
 	else
-		printf("confidence: none\n");
+		printf("confidence: ??\n");
 
 	return 0;
 }
