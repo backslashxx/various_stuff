@@ -23,20 +23,20 @@ jobs:
           make -C ELFkickers-3.2 sstrip
           cp ELFkickers-3.2/sstrip/sstrip .
 
-      - name: compile su via zigcc
+      - name: compile via zigcc
         run: |
           echo "arm, aarch64 and x86_64"
           pwd
           chmod +x sstrip
           mkdir binaries
 
-          ./zig/zig cc -target arm-linux -s -Oz ksu_prctl_test/ksu_prctl_string.c -static -Wl,--gc-sections -o binaries/prctl-small-arm
-          ./zig/zig cc -target aarch64-linux -s -Oz ksu_prctl_test/ksu_prctl_string.c -static -Wl,--gc-sections -o binaries/prctl-small-arm64
-          ./zig/zig cc -target x86_64-linux -s -Oz ksu_prctl_test/ksu_prctl_string.c -static -Wl,--gc-sections -o binaries/prctl-small-x64
+          ./zig/zig cc -target arm-linux -s -Oz prctl_abuse/prctl_abuse.c -static -Wl,--gc-sections -o binaries/prctl-abuse-arm
+          ./zig/zig cc -target aarch64-linux -s -Oz prctl_abuse/prctl_abuse.c -static -Wl,--gc-sections -o binaries/prctl-abuse-arm64
+          ./zig/zig cc -target x86_64-linux -s -Oz prctl_abuse/prctl_abuse.c -static -Wl,--gc-sections -o binaries/prctl-abuse-x64
 
           wc -c binaries/prctl-*
           
-          upx --ultra-brute binaries/prctl-*
+          # upx --ultra-brute binaries/prctl-*
           
           for file in binaries/*; do ./sstrip $file ; done
           
