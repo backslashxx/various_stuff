@@ -94,14 +94,16 @@ int main() {
 	printf("average 0xDEADBEEF: %lld ns\n", avg_real_ns);
 	printf("0xDEADBEEF/0xFFFFFFFF: %.2f%%\n", percent_overhead);
 
-	if (percent_overhead >= 3.0)
+	if (percent_overhead >= 5.0)
 		printf("confidence: high\n");
-	else if (percent_overhead >= 2.0)
+	else if (percent_overhead >= 4.0)
 		printf("confidence: maybe\n");
-	else if (percent_overhead > 1.0)
+	else if (percent_overhead >= 2.0)
 		printf("confidence: low\n");
+	else if (percent_overhead > 1.0)
+		printf("confidence: very low\n");
 	else
-		printf("confidence: ??\n");
+		printf("verdict: try again\n");
 
 	return 0;
 }
