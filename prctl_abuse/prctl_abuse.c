@@ -65,7 +65,6 @@ int main() {
 		prctl_call((unsigned long)0xDEADBEED);
 		prctl_call((unsigned long)0xDEADBEEE);
 		prctl_call((unsigned long)0xDEADBEED);
-		prctl_call((unsigned long)0xDEADBEEE);
 		t_start = time_now_ns();
 		t_end_decoy = t_start;
 		prctl_call((unsigned long)0xDEADBEEF);
@@ -73,7 +72,7 @@ int main() {
 		total_kernelsu_option_time = total_kernelsu_option_time + (t_end - t_start);
 		total_decoy_time = total_decoy_time + (t_end_decoy - t_start_decoy);
 		kernelsu_option = kernelsu_option + 1;
-		decoy_count = decoy_count + 6;
+		decoy_count = decoy_count + 5;
 		asm volatile("nop");
 		i = i + 1;
 	} while (i < N_ITERATIONS);
