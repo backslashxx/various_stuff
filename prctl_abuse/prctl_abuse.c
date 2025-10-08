@@ -11,7 +11,7 @@
 // zig cc -target aarch64-linux -Oz -s -static prctl_bench.c -Wl,--gc-sections -o bench
 // taskset -c 0 ./bench
 
-#define N_ITERATIONS 5000
+#define N_ITERATIONS 2500
 #define N_BATCH 8
 
 // https://github.com/wtarreau/mhz/blob/master/mhz.c
@@ -35,8 +35,16 @@ static void prctl_call(unsigned long option) {
 	//asm volatile("nop");
 }
 
-
-
+// https://www.tutorialspoint.com/c_standard_library/c_function_qsort.htm
+static int compare_ull(const void *arg1, const void *arg2) {
+	unsigned long long ull_a = *(unsigned long long *)arg1;
+	unsigned long long ull_b = *(unsigned long long *)arg2;
+	// truth table
+	// a > b ; 1 - 0
+	// a = b ; 0 - 0
+	// a < b ; 0 - 1
+	return (ull_a > ull_b) - (ull_a < ull_b);
+}
 
 int main() {
 	cpu_set_t cpuset;
@@ -50,7 +58,7 @@ int main() {
 	unsigned long long total_deadbeef_time = 0;
 	unsigned long long total_ffffffff_time = 0;
 
-	/* train */
+	/* waza for FFFFFFFF */
 	int j = 0;
 	do {
 		int z = 0;
@@ -78,7 +86,7 @@ int main() {
 		asm volatile("nop");
 	} while (k < N_ITERATIONS);
 
-	/* retrain */
+	/* waza for DEADBEEF */
 	j = 0;
 	do {
 		int z = 0;
@@ -113,20 +121,36 @@ int main() {
 	double ratio = (double)avg_real_ns / avg_nop_prctl_ns;
 	double percent_overhead = (ratio - 1.0) * 100.0;
 
+	// sort the array we got
+	qsort(deadbeef_samples, N_ITERATIONS, sizeof(deadbeef_samples[0]), compare_ull);
+	qsort(ffffffff_samples, N_ITERATIONS, sizeof(ffffffff_samples[0]), compare_ull);
+
+	unsigned long long median_deadbeef;
+	unsigned long long median_ffffffff;
+
+	// grab that shit in the middle
+	median_deadbeef = deadbeef_samples[N_ITERATIONS / 2];
+	median_ffffffff = ffffffff_samples[N_ITERATIONS / 2];
+	
+	double ratio_overhead = (double)median_deadbeef /(double)median_ffffffff;
+	double median_overhead = (ratio_overhead - 1.0) * 100.0;
+
 	printf("iterations: %d\n", N_ITERATIONS);
 	printf("average 0xFFFFFFFF: %lld ns\n", avg_nop_prctl_ns);
 	printf("average 0xDEADBEEF: %lld ns\n", avg_real_ns);
-	printf("0xDEADBEEF/0xFFFFFFFF: %.2f%%\n", percent_overhead);
+	printf("average 0xDEADBEEF/0xFFFFFFFF: %.2f%%\n", percent_overhead);
+	printf("median 0xFFFFFFFF: %llu ns\n", median_ffffffff);
+	printf("median 0xDEADBEEF: %llu ns\n", median_deadbeef);
+	printf("median 0xDEADBEEF/0xFFFFFFFF: %.2f%%\n", median_overhead);
 
-	if (percent_overhead >= 3.5)
-		printf("confidence: very high\n");
-	else if (percent_overhead >= 3.0)
-		printf("confidence: high\n");
-	else if (percent_overhead >= 2.0)
-		printf("confidence: maybe\n");
-	else if (percent_overhead > 1.0)
-		printf("confidence: low\n");
-	else
+	if (median_overhead >= 1.5) {
+		if (percent_overhead >= 3.0)
+			printf("confidence: high\n");
+		else if (percent_overhead > 0.5)
+			printf("confidence: maybe\n");
+		else
+			printf("verdict: try again\n");
+	} else
 		printf("verdict: try again\n");
 
 	return 0;
