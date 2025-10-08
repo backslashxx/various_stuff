@@ -57,7 +57,9 @@ int main() {
 
 	unsigned long long total_deadbeef_time = 0;
 	unsigned long long total_ffffffff_time = 0;
-
+	
+//	int loops = 0;
+//start:
 	/* waza for FFFFFFFF */
 	int j = 0;
 	do {
@@ -69,7 +71,7 @@ int main() {
 		} while (z < N_BATCH);
 		j = j + 1;
 		asm volatile("nop");
-	} while (j < 10000);
+	} while (j < 250);
 
 	int k = 0;
 	do {
@@ -97,7 +99,7 @@ int main() {
 		} while (z < N_BATCH);
 		j = j + 1;
 		asm volatile("nop");
-	} while (j < 10000);
+	} while (j < 250);
 
 	int i = 0;
 	do {
@@ -113,8 +115,11 @@ int main() {
 		i = i + 1;
 		asm volatile("nop");
 	} while (i < N_ITERATIONS);
-
 	
+//	loops = loops + 1;
+//	if (!(loops > N_BATCH))
+//		goto start;
+
 	long long avg_real_ns = total_deadbeef_time / N_ITERATIONS;
 	long long avg_nop_prctl_ns = total_ffffffff_time / N_ITERATIONS;
 	
@@ -144,7 +149,7 @@ int main() {
 	printf("median 0xDEADBEEF/0xFFFFFFFF: %.2f%%\n", median_overhead);
 
 	if (median_overhead >= 1.5) {
-		if (percent_overhead >= 3.0)
+		if (percent_overhead >= 1.5)
 			printf("confidence: high\n");
 		else if (percent_overhead > 0.5)
 			printf("confidence: maybe\n");
