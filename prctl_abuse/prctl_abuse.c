@@ -11,7 +11,7 @@
 // zig cc -target aarch64-linux -Oz -s -static prctl_bench.c -Wl,--gc-sections -o bench
 // taskset -c 0 ./bench
 
-#define N_ITERATIONS 2500
+#define N_ITERATIONS 1000
 #define N_BATCH 8
 
 // https://github.com/wtarreau/mhz/blob/master/mhz.c
