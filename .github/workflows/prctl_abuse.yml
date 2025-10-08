@@ -1,0 +1,39 @@
+name: build prctl-abuse
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: grab zig
+        run: |
+          curl -L https://ziglang.org/download/0.14.1/zig-x86_64-linux-0.14.1.tar.xz -o zig.tar.xz
+          tar -xf zig.tar.xz
+          mv zig-* zig
+
+      - name: compile via zigcc
+        run: |
+          echo "arm, aarch64 and x86_64"
+          pwd
+          mkdir binaries
+
+          ./zig/zig cc -target arm-linux -s -Oz prctl_abuse/prctl_abuse.c -static -Wl,--gc-sections -o binaries/prctl-abuse-arm
+          ./zig/zig cc -target aarch64-linux -s -Oz prctl_abuse/prctl_abuse.c -static -Wl,--gc-sections -o binaries/prctl-abuse-arm64
+          ./zig/zig cc -target x86_64-linux -s -Oz prctl_abuse/prctl_abuse.c -static -Wl,--gc-sections -o binaries/prctl-abuse-x64
+
+          wc -c binaries/prctl-*
+
+          file binaries/prctl-*
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: binaries
+          path: binaries/
+
+
