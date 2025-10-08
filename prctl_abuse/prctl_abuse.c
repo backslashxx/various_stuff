@@ -11,11 +11,12 @@
 // zig cc -target aarch64-linux -Oz -s -static prctl_bench.c -Wl,--gc-sections -o bench
 // taskset -c 0 ./bench
 
-#define N_ITERATIONS 250000
+#define N_ITERATIONS 2500
+#define N_BATCH 8
 
 // https://github.com/wtarreau/mhz/blob/master/mhz.c
 __attribute__((hot, always_inline))
-static inline unsigned long long time_now_ns() {
+static unsigned long long time_now_ns() {
 	struct timespec ts;
 #ifdef CLOCK_MONOTONIC_RAW
 	clock_gettime(CLOCK_MONOTONIC_RAW, &ts);
@@ -26,7 +27,7 @@ static inline unsigned long long time_now_ns() {
 }
 
 __attribute__((hot, always_inline, no_stack_protector))
-static inline void prctl_call(unsigned long option) {
+static void prctl_call(unsigned long option) {
 	volatile unsigned long dummy = 0;
 	syscall(SYS_prctl, option, (unsigned long)&dummy,
 			(unsigned long)&dummy, (unsigned long)&dummy, (unsigned long)&dummy);
@@ -46,35 +47,63 @@ int main() {
 	unsigned long long total_nop_prctl_time = 0;
 	unsigned long long t_start_nop, t_end_nop;
 
+	/* retrain */
+	int j = 0;
+	do {
+		int z = 0;
+		do {
+			prctl_call((unsigned long)0xFFFFFFFF);
+			prctl_call((unsigned long)0xFFFFFFFF);
+			z = z +1 ;
+		} while (z < N_BATCH);
+		j = j + 1;
+		asm volatile("nop");
+	} while (j < N_ITERATIONS);
 
 	int k = 0;
 	t_start_nop = time_now_ns();
 	do {
-		prctl_call((unsigned long)0xFFFFFFFF);
-		k++;
+		int z = 0;
+		do {
+			prctl_call((unsigned long)0xFFFFFFFF);
+			z = z + 1;
+		} while (z < N_BATCH);	
+		k = k + 1;
+		asm volatile("nop");
 	} while (k < N_ITERATIONS);
 	t_end_nop = time_now_ns();
 	total_nop_prctl_time = t_end_nop - t_start_nop;
 
 
-	int j = 0;
+	/* retrain */
+	j = 0;
 	do {
-		//prctl_call((unsigned long)0xDEADBEED);
-		prctl_call((unsigned long)0xDEADBEEE);
+		int z = 0;
+		do {
+			prctl_call((unsigned long)0xDEADBEED);
+			prctl_call((unsigned long)0xDEADBEEE);
+			z = z +1 ;
+		} while (z < N_BATCH);
 		j = j + 1;
+		asm volatile("nop");
 	} while (j < N_ITERATIONS);
 
 	int i = 0;
 	t_start = time_now_ns();
 	do {
-		prctl_call((unsigned long)0xDEADBEEF);
+		int z = 0;
+		do {
+			prctl_call((unsigned long)0xDEADBEEF);
+			z = z + 1;
+		} while (z < N_BATCH);
 		i = i + 1;
+		asm volatile("nop");
 	} while (i < N_ITERATIONS);
 	t_end = time_now_ns();
 	total_kernelsu_option_time = t_end - t_start;
 	
-	long long avg_nop_prctl_ns = (long long)(total_nop_prctl_time / N_ITERATIONS);
-	long long avg_real_ns = (long long)(total_kernelsu_option_time / N_ITERATIONS);
+	long long avg_nop_prctl_ns = (long long)(total_nop_prctl_time / (N_ITERATIONS * N_BATCH) );
+	long long avg_real_ns = (long long)(total_kernelsu_option_time / (N_ITERATIONS * N_BATCH) );
 	
 	double ratio = (double)avg_real_ns / avg_nop_prctl_ns;
 	double percent_overhead = (ratio - 1.0) * 100.0;
