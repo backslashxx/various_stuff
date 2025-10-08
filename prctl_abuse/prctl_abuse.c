@@ -11,7 +11,7 @@
 // zig cc -target aarch64-linux -Oz -s -static prctl_bench.c -Wl,--gc-sections -o bench
 // taskset -c 0 ./bench
 
-#define N_ITERATIONS 2500
+#define N_ITERATIONS 5000
 #define N_BATCH 8
 
 // https://github.com/wtarreau/mhz/blob/master/mhz.c
@@ -35,19 +35,22 @@ static void prctl_call(unsigned long option) {
 	//asm volatile("nop");
 }
 
+
+
+
 int main() {
 	cpu_set_t cpuset;
 	CPU_ZERO(&cpuset);
 	CPU_SET(0, &cpuset);
 	sched_setaffinity(0, sizeof(cpuset), &cpuset);
 
-	unsigned long long t_start, t_end;
-	unsigned long long total_kernelsu_option_time = 0;
+	unsigned long long deadbeef_samples[N_ITERATIONS];
+	unsigned long long ffffffff_samples[N_ITERATIONS];
 
-	unsigned long long total_nop_prctl_time = 0;
-	unsigned long long t_start_nop, t_end_nop;
+	unsigned long long total_deadbeef_time = 0;
+	unsigned long long total_ffffffff_time = 0;
 
-	/* retrain */
+	/* train */
 	int j = 0;
 	do {
 		int z = 0;
@@ -58,22 +61,22 @@ int main() {
 		} while (z < N_BATCH);
 		j = j + 1;
 		asm volatile("nop");
-	} while (j < N_ITERATIONS);
+	} while (j < 10000);
 
 	int k = 0;
-	t_start_nop = time_now_ns();
 	do {
+		unsigned long long t0 = time_now_ns();
 		int z = 0;
 		do {
 			prctl_call((unsigned long)0xFFFFFFFF);
 			z = z + 1;
 		} while (z < N_BATCH);	
+		unsigned long long t1 = time_now_ns();
+		ffffffff_samples[k] = (t1 - t0) / N_BATCH;
+		total_ffffffff_time += ffffffff_samples[k];
 		k = k + 1;
 		asm volatile("nop");
 	} while (k < N_ITERATIONS);
-	t_end_nop = time_now_ns();
-	total_nop_prctl_time = t_end_nop - t_start_nop;
-
 
 	/* retrain */
 	j = 0;
@@ -86,24 +89,26 @@ int main() {
 		} while (z < N_BATCH);
 		j = j + 1;
 		asm volatile("nop");
-	} while (j < N_ITERATIONS);
+	} while (j < 10000);
 
 	int i = 0;
-	t_start = time_now_ns();
 	do {
 		int z = 0;
+		unsigned long long t0 = time_now_ns();
 		do {
 			prctl_call((unsigned long)0xDEADBEEF);
 			z = z + 1;
 		} while (z < N_BATCH);
+		unsigned long long t1 = time_now_ns();
+		deadbeef_samples[i] = (t1 - t0) / N_BATCH;
+		total_deadbeef_time += deadbeef_samples[i];
 		i = i + 1;
 		asm volatile("nop");
 	} while (i < N_ITERATIONS);
-	t_end = time_now_ns();
-	total_kernelsu_option_time = t_end - t_start;
+
 	
-	long long avg_nop_prctl_ns = (long long)(total_nop_prctl_time / (N_ITERATIONS * N_BATCH) );
-	long long avg_real_ns = (long long)(total_kernelsu_option_time / (N_ITERATIONS * N_BATCH) );
+	long long avg_real_ns = total_deadbeef_time / N_ITERATIONS;
+	long long avg_nop_prctl_ns = total_ffffffff_time / N_ITERATIONS;
 	
 	double ratio = (double)avg_real_ns / avg_nop_prctl_ns;
 	double percent_overhead = (ratio - 1.0) * 100.0;
