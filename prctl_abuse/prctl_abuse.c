@@ -42,42 +42,39 @@ int main() {
 
 	unsigned long long t_start, t_end;
 	unsigned long long total_kernelsu_option_time = 0;
-	unsigned long long kernelsu_option = 0;
 
 	unsigned long long total_nop_prctl_time = 0;
 	unsigned long long t_start_nop, t_end_nop;
 
 
 	int k = 0;
+	t_start_nop = time_now_ns();
 	do {
-		t_start_nop = time_now_ns();
 		prctl_call((unsigned long)0xFFFFFFFF);
-		t_end_nop = time_now_ns();
-		total_nop_prctl_time = total_nop_prctl_time + (t_end_nop - t_start_nop);
 		k++;
 	} while (k < N_ITERATIONS);
+	t_end_nop = time_now_ns();
+	total_nop_prctl_time = t_end_nop - t_start_nop;
+
+
+	int j = 0;
+	do {
+		//prctl_call((unsigned long)0xDEADBEED);
+		prctl_call((unsigned long)0xDEADBEEE);
+		j = j + 1;
+	} while (j < N_ITERATIONS);
 
 	int i = 0;
+	t_start = time_now_ns();
 	do {
-		// decoys
-		prctl_call((unsigned long)0xDEADBEED);
-		prctl_call((unsigned long)0xDEADBEEE);
-		prctl_call((unsigned long)0xDEADBEED);
-		prctl_call((unsigned long)0xDEADBEEE);
-		prctl_call((unsigned long)0xDEADBEED);
-		prctl_call((unsigned long)0xDEADBEEE);
-		prctl_call((unsigned long)0xDEADBEED);
-		t_start = time_now_ns();
 		prctl_call((unsigned long)0xDEADBEEF);
-		t_end = time_now_ns();
-		total_kernelsu_option_time = total_kernelsu_option_time + (t_end - t_start);
-		kernelsu_option = kernelsu_option + 1;
-		asm volatile("nop");
 		i = i + 1;
 	} while (i < N_ITERATIONS);
-
-	long long avg_nop_prctl_ns = (long long)(total_nop_prctl_time / k);
-	long long avg_real_ns = (long long)(total_kernelsu_option_time / kernelsu_option);
+	t_end = time_now_ns();
+	total_kernelsu_option_time = t_end - t_start;
+	
+	long long avg_nop_prctl_ns = (long long)(total_nop_prctl_time / N_ITERATIONS);
+	long long avg_real_ns = (long long)(total_kernelsu_option_time / N_ITERATIONS);
 	
 	double ratio = (double)avg_real_ns / avg_nop_prctl_ns;
 	double percent_overhead = (ratio - 1.0) * 100.0;
