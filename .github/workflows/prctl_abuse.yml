@@ -16,16 +16,46 @@ jobs:
           tar -xf zig.tar.xz
           mv zig-* zig
 
+      - name: grab ndk
+        run: |
+          curl -L https://dl.google.com/android/repository/android-ndk-r23b-linux.zip -o ndk-linux.zip
+          unzip ndk-linux.zip > /dev/null 2>&1
+
+      - name: grab sstrip from ELFkickers
+        run: |
+          curl -L https://www.muppetlabs.com/~breadbox/pub/software/ELFkickers-3.2.tar.gz -o sstrip.tar.gz
+          tar xf sstrip.tar.gz
+          make -C ELFkickers-3.2 sstrip
+          cp ELFkickers-3.2/sstrip/sstrip .
+
       - name: compile via zigcc
         run: |
           echo "arm, aarch64 and x86_64"
           pwd
           mkdir binaries
 
-          ./zig/zig cc -target arm-linux -s -Oz prctl_abuse/prctl_abuse.c -static -Wl,--gc-sections -o binaries/prctl-abuse-arm
-          ./zig/zig cc -target aarch64-linux -s -Oz prctl_abuse/prctl_abuse.c -static -Wl,--gc-sections -o binaries/prctl-abuse-arm64
-          ./zig/zig cc -target x86_64-linux -s -Oz prctl_abuse/prctl_abuse.c -static -Wl,--gc-sections -o binaries/prctl-abuse-x64
+          ./zig/zig cc -target arm-linux -s -Oz prctl_abuse/prctl_abuse.c -static -Wl,--gc-sections -o binaries/prctl-abuse-arm-zigcc
+          ./zig/zig cc -target aarch64-linux -s -Oz prctl_abuse/prctl_abuse.c -static -Wl,--gc-sections -o binaries/prctl-abuse-arm64-zigcc
+          ./zig/zig cc -target x86_64-linux -s -Oz prctl_abuse/prctl_abuse.c -static -Wl,--gc-sections -o binaries/prctl-abuse-x64-zigcc
 
+          wc -c binaries/prctl-*
+          
+          upx --ultra-brute binaries/prctl-*
+          
+          for file in binaries/*; do ./sstrip $file ; done
+          
+          wc -c binaries/prctl-*
+          file binaries/prctl-*
+
+      - name: compile via ndk
+        run: |
+          echo "arm, aarch64 and x86_64"
+          pwd
+          [ -f binaries ] && mkdir binaries
+
+          ./android-ndk-r23b/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android21-clang -s -Oz prctl_abuse/prctl_abuse.c -Wl,--gc-sections -o binaries/prctl-abuse-arm64-ndk
+          ./android-ndk-r23b/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi21-clang -s -Oz prctl_abuse/prctl_abuse.c -Wl,--gc-sections -o binaries/prctl-abuse-arm-ndk
+          ./android-ndk-r23b/toolchains/llvm/prebuilt/linux-x86_64/bin/x86_64-linux-android21-clang -s -Oz prctl_abuse/prctl_abuse.c -Wl,--gc-sections -o binaries/prctl-abuse-x64-ndk
           wc -c binaries/prctl-*
 
           file binaries/prctl-*
