@@ -1,0 +1,160 @@
+From 246cfc460568dee02142c5f497449c74ed3c95fd Mon Sep 17 00:00:00 2001
+From: backslashxx <118538522+backslashxx@users.noreply.github.com>
+Date: Tue, 28 Oct 2025 13:23:08 +0800
+Subject: [PATCH] hostapd: fake CC, txpower and TPE
+
+all this does is fake the beacon
+useful in a situation like ath11k where it wont use kernel's regdb
+as it uses its own (self managed phy)
+
+this way you can use another country's reg rules without broadcasting it to everyone
+
+add onto radio section
+
+$ cat /etc/config/wireless
+config wifi-device 'radio0'
+	option type 'mac80211'
+	option channel '36'
+	option band '5g'
+	option htmode 'HE80'
+	option cell_density '0'
+	option country 'PA'
+	...
+	list hostapd_options 'fakecc=XX fakepwr=20'
+
+beacon will look like
+
+$ sudo iw wlp7s0 scan
+BSS <redacted>(on wlp7s0)
+	...
+	freq: 5180.0
+	beacon interval: 100 TUs
+	capability: ESS Privacy ShortPreamble RadioMeasure (0x1031)
+	signal: -63.00 dBm
+	last seen: 67 ms ago
+	Information elements from Probe Response frame:
+	SSID: <ssid_name>
+	Supported rates: 6.0* 9.0 12.0* 18.0 24.0* 36.0 48.0 54.0
+	Country: XX	Environment: Indoor/Outdoor
+		Channels [36 - 64] @ 20 dBm
+		Channels [100 - 144] @ 20 dBm
+		Channels [149 - 165] @ 20 dBm
+	...
+	Transmit Power Envelope:
+		 * Local Maximum Transmit Power For 20 MHz: 20 dBm
+		 * Local Maximum Transmit Power For 40 MHz: 20 dBm
+		 * Local Maximum Transmit Power For 80 MHz: 20 dBm
+	...
+---
+ hostapd/config_file.c | 10 ++++++++++
+ src/ap/ap_config.c    |  2 ++
+ src/ap/ap_config.h    |  2 ++
+ src/ap/beacon.c       |  9 +++++++--
+ src/ap/ieee802_11.c   |  2 ++
+ 5 files changed, 23 insertions(+), 2 deletions(-)
+
+diff --git a/hostapd/config_file.c b/hostapd/config_file.c
+index 3fb059770..2b9d28887 100644
+--- a/hostapd/config_file.c
++++ b/hostapd/config_file.c
+@@ -2582,8 +2582,18 @@ static int hostapd_config_fill(struct hostapd_config *conf,
+ 			return 1;
+ 		}
+ 		os_memcpy(conf->country, pos, 2);
++		os_memcpy(conf->fakecc, pos, 2);
++	} else if (os_strcmp(buf, "fakepwr") == 0) {
++		int val = atoi(pos);
++		conf->fakepwr = val;
++	} else if (os_strcmp(buf, "fakecc") == 0) {
++		if (os_strlen(pos) == 2)
++			os_memcpy(conf->fakecc, pos, 2); 
++		else
++			wpa_printf(MSG_ERROR, "invalid fakecc, using country");
+ 	} else if (os_strcmp(buf, "country3") == 0) {
+ 		conf->country[2] = strtol(pos, NULL, 16);
++		conf->fakecc[2] = strtol(pos, NULL, 16);
+ 	} else if (os_strcmp(buf, "ieee80211d") == 0) {
+ 		conf->ieee80211d = atoi(pos);
+ 	} else if (os_strcmp(buf, "ieee80211h") == 0) {
+diff --git a/src/ap/ap_config.c b/src/ap/ap_config.c
+index 565b58716..5fdcd37e0 100644
+--- a/src/ap/ap_config.c
++++ b/src/ap/ap_config.c
+@@ -257,6 +257,7 @@ struct hostapd_config * hostapd_config_defaults(void)
+ 	conf->ap_table_max_size = 255;
+ 	conf->ap_table_expiration_time = 60;
+ 	conf->track_sta_max_age = 180;
++	conf->fakepwr = 0;
+ 
+ #ifdef CONFIG_TESTING_OPTIONS
+ 	conf->ignore_probe_probability = 0.0;
+@@ -296,6 +297,7 @@ struct hostapd_config * hostapd_config_defaults(void)
+ 	 * by default to indicate that the regulations encompass all
+ 	 * environments for the current frequency band in the country. */
+ 	conf->country[2] = ' ';
++	conf->fakecc[2] = ' ';
+ 
+ 	conf->rssi_reject_assoc_rssi = 0;
+ 	conf->rssi_reject_assoc_timeout = 30;
+diff --git a/src/ap/ap_config.h b/src/ap/ap_config.h
+index ced2181ab..2998a3371 100644
+--- a/src/ap/ap_config.h
++++ b/src/ap/ap_config.h
+@@ -1080,6 +1080,8 @@ struct hostapd_config {
+ 			  * 0x00..0x31: identifying IEEE 802.11 standard
+ 			  *	Annex E table (0x04 = global table)
+ 			  */
++	char fakecc[3];
++	int fakepwr;
+ 
+ 	int ieee80211d;
+ 
+diff --git a/src/ap/beacon.c b/src/ap/beacon.c
+index cec0c9829..bc4f505d4 100644
+--- a/src/ap/beacon.c
++++ b/src/ap/beacon.c
+@@ -198,16 +198,21 @@ static u8 * hostapd_eid_country_add(struct hostapd_data *hapd, u8 *pos,
+ 				    struct hostapd_channel_data *start,
+ 				    struct hostapd_channel_data *prev)
+ {
++	int fakepwr;
+ 	if (end - pos < 3)
+ 		return pos;
+ 
++	fakepwr = hapd->iconf->fakepwr;
+ 	/* first channel number */
+ 	*pos++ = start->chan;
+ 	/* number of channels */
+ 	*pos++ = (prev->chan - start->chan) / chan_spacing + 1;
+ 	/* maximum transmit power level */
+ 	if (!is_6ghz_op_class(hapd->iconf->op_class))
+-		*pos++ = start->max_tx_power;
++		if (fakepwr > 0) 
++			*pos++ = fakepwr; 
++		else
++			*pos++ = start->max_tx_power;
+ 	else
+ 		*pos++ = 0; /* Reserved when operating on the 6 GHz band */
+ 
+@@ -269,7 +274,7 @@ static u8 * hostapd_eid_country(struct hostapd_data *hapd, u8 *eid,
+ 
+ 	*pos++ = WLAN_EID_COUNTRY;
+ 	pos++; /* length will be set later */
+-	os_memcpy(pos, hapd->iconf->country, 3); /* e.g., 'US ' */
++	os_memcpy(pos, hapd->iconf->fakecc, 3); /* e.g., 'US ' */
+ 	pos += 3;
+ 
+ 	if (is_6ghz_op_class(hapd->iconf->op_class)) {
+diff --git a/src/ap/ieee802_11.c b/src/ap/ieee802_11.c
+index 6c516bc8a..a0a37c39f 100644
+--- a/src/ap/ieee802_11.c
++++ b/src/ap/ieee802_11.c
+@@ -7197,6 +7197,8 @@ u8 * hostapd_eid_txpower_envelope(struct hostapd_data *hapd, u8 *eid)
+ 	 */
+ 	chan = &mode->channels[i];
+ 	max_tx_power = chan->max_tx_power - local_pwr_constraint;
++	if (hapd->iconf->fakepwr > 0) 
++		max_tx_power = hapd->iconf->fakepwr;
+ 
+ 	/*
+ 	 * Local Maximum Transmit power is encoded as two's complement
