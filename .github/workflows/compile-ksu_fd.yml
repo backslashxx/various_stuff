@@ -1,0 +1,52 @@
+name: build ksu_fd
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: grab zig
+        run: |
+          curl -L https://ziglang.org/download/0.14.1/zig-x86_64-linux-0.14.1.tar.xz -o zig.tar.xz
+          tar -xf zig.tar.xz
+          mv zig-* zig
+
+      - name: grab sstrip from ELFkickers
+        run: |
+          curl -L https://www.muppetlabs.com/~breadbox/pub/software/ELFkickers-3.2.tar.gz -o sstrip.tar.gz
+          tar xf sstrip.tar.gz
+          make -C ELFkickers-3.2 sstrip
+          cp ELFkickers-3.2/sstrip/sstrip .
+
+      - name: compile su via zigcc
+        run: |
+          echo "arm, aarch64 and x86_64"
+          pwd
+          chmod +x sstrip
+          mkdir binaries
+
+          ./zig/zig cc -target arm-linux -s -Oz ksu_fd/ksu_fd.c -static -Wl,--gc-sections -o binaries/ksu_fd-small-arm
+          ./zig/zig cc -target aarch64-linux -s -Oz ksu_fd/ksu_fd.c -static -Wl,--gc-sections -o binaries/ksu_fd-small-arm64
+          ./zig/zig cc -target x86_64-linux -s -Oz ksu_fd/ksu_fd.c  -static -Wl,--gc-sections -o binaries/ksu_fd-small-x64
+
+          wc -c binaries/ksu_fd-*
+          
+          upx --ultra-brute binaries/ksu_fd-*
+          
+          for file in binaries/*; do ./sstrip $file ; done
+          
+          wc -c binaries/ksu_fd-*
+          file binaries/ksu_fd-*
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: binaries
+          path: binaries/
+
+
