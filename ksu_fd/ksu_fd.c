@@ -13,9 +13,10 @@
 struct ksu_get_info_cmd {
 	uint32_t version; // Output: KERNEL_SU_VERSION
 	uint32_t flags; // Output: flags (bit 0: MODULE mode)
+	uint32_t features; // Output: max feature ID supported
 };
 
-#define KSU_IOCTL_GET_INFO _IOR('K', 2, struct ksu_get_info_cmd)
+#define KSU_IOCTL_GET_INFO _IOC(_IOC_READ, 'K', 2, 0)
 
 int main(void)
 {
@@ -26,7 +27,7 @@ int main(void)
 
 	// by default it doesnt do shit, we have to check if we got somethign back
 	// since we init this as 0, if its still 0 then it failed
-	if (fd == 0) {
+	if (!fd) {
 		printf("sys_reboot failed\n");
 		return 1;
 	}
@@ -41,6 +42,7 @@ int main(void)
 	} else {
 		printf("[+] ksuver: %d\n", info.version);
 		printf("[+] flags: 0x%x\n", info.flags);
+		printf("[+] features: 0x%x\n", info.features); 
 	}
 
 	// close fd when done
