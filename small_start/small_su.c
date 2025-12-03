@@ -121,11 +121,9 @@ void prep_main(long *sp)
 	const char **argv = (const char **)(sp + 1);
 	const char **envp = (const char **)(sp + 2);
 
-	int call = c_main(argc, argv, envp);
-	if (!call)
-		__syscall(SYS_exit, 0, 0, 0, 0, 0, 0);
-	else
-		__syscall(SYS_exit, 1, 0, 0, 0, 0, 0);
+	long exit_code = c_main(argc, argv, envp);
+	__syscall(SYS_exit, exit_code, 0, 0, 0, 0, 0);
+	
 }
 
 
