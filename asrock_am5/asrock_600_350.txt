@@ -1,0 +1,50 @@
+# Asrock AM5 600 Series 3.50, ComboAM5 1.2.0.3g
+#
+# Patches
+#  + Fixed mode voltage unlock
+#  + LLC unlock (if locked)
+#  + AMI Advanced Form Unlocked
+#
+# Should apply on X670/E, B650/E and A620, and on DeskMini X600.
+# These patches will only apply whats applicable for your board.
+#
+# Apply via UEFIPatch - https://github.com/LongSoft/UEFITool/releases/tag/0.28.0
+#
+# Then 
+#       Flashback - CREATIVE.ROM 
+#       Flashback via BIOSUBU - PSPBIOS.IMG
+#
+#
+# Feel free to share this anywhere. 
+# No warranties. - coffee / coffee1062 / coffee#1062 on discord 
+# - \x ;)
+
+
+# AmiSetup
+# Unlock "Fixed Mode" voltage controls
+899407D7-99FE-43D8-9A21-79EC328CAC21 10 P:0A8246020907:0A8247020907     
+# Unlock LLC Settings on mITX and mATX ( 3.06 and below)
+899407D7-99FE-43D8-9A21-79EC328CAC21 10 P:00002902290229020A82460219821206:00002902290229020A82470219821206  
+# Unfuck DeskMini X600
+899407D7-99FE-43D8-9A21-79EC328CAC21 10 P:0A8246020794C3:0A8247020794C3 
+
+# AodDXE
+# Unlock PBO "Advanced" Settings on some boards (B650M-H/M.2, B850M-X)
+# enable is advanced!
+442BA91E-B0A8-499F-94F7-2E922C9AAE0D 10 P:00101000FF000907..001000FF0907..000000000907..000000012902:00101000FF000907..001000FF0907..000000000907..000000022902
+# unhide a few more things
+442BA91E-B0A8-499F-94F7-2E922C9AAE0D 10 P:0A82450A01000000000000000F0F:0A8247020A824702170229020F0F  
+
+####### Optional ones below
+
+# AmiSetup
+# unlock vrm safety controls (RT3647AE)
+# overtemperature protection, overstress threshold
+899407D7-99FE-43D8-9A21-79EC328CAC21 10 P:0A8246020791:0A8247020791 
+899407D7-99FE-43D8-9A21-79EC328CAC21 10 P:000000290229020A8246020591:000000290229020A8247020591 
+
+# repurpose some bytes to unlock ami advanced form (here you go scewin users)
+# uncomment line below to enable
+# 899407D7-99FE-43D8-9A21-79EC328CAC21 10 P:0A821206....00000287020000000029020287....00000029020287....00000029020287....00000029020287....00000029020287....00000029020287....00000029020287....00000029022902:0A8247021702160229020287020000000029020287020000000029020287020000000029020287020000000029020F0F1E00020002000000FFFF0012270A8246020F0F0900020001000000FFFF0011272902        
+
+# eof
