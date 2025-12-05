@@ -79,6 +79,7 @@ struct ksu_add_try_umount_cmd {
 
 #define KSU_IOCTL_ADD_TRY_UMOUNT _IOC(_IOC_WRITE, 'K', 18, 0)
 
+#define alloca __builtin_alloca
 #define memset __builtin_memset
 #define strlen __builtin_strlen
 
@@ -105,8 +106,10 @@ static int c_main(int argc, char **argv, char **envp)
 	if (!total_size)
 		return 1;
 
-	// VLA!
-	char buffer[total_size];
+	// now we can prepare the same size of memory		
+	void *buffer = alloca(total_size);
+	if (!buffer)
+		return 1;
 	
 	memset(buffer, 0, total_size);
 
