@@ -119,11 +119,11 @@ void prep_main(long *sp)
 {
 	long argc = *sp;
 	const char **argv = (const char **)(sp + 1);
-	const char **envp = (const char **)(sp + 2);
+	const char **envp = argv + argc + 1; // we need to offset it by the number of argc's!
 
 	long exit_code = c_main(argc, argv, envp);
 	__syscall(SYS_exit, exit_code, 0, 0, 0, 0, 0);
-	
+	__builtin_unreachable();
 }
 
 
