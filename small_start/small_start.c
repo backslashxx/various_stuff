@@ -2,6 +2,7 @@
 // zig cc -target aarch64-linux small_start.c -Oz -s -static -Wl,--gc-sections,--strip-all,-z,norelro -fno-unwind-tables -Wl,--entry=__start -Wno-int-conversion -o small_start 
 
 // youre in C at this point
+__attribute__((always_inline))
 static int c_main(int argc, char **argv, char **envp)
 {
 
@@ -36,12 +37,13 @@ envp_loop_start:
 
 	i++;
 	
-	if (env[i])
+	if (envp[i])
 		goto envp_loop_start;
 
 	return 0;
 }
 
+__attribute__((used))
 void prep_main(long *sp)
 {
 	long argc = *sp;
@@ -50,4 +52,5 @@ void prep_main(long *sp)
 
 	long exit_code = c_main(argc, argv, envp);
 	__syscall(SYS_exit, exit_code, NONE, NONE, NONE, NONE, NONE);
+	__builtin_unreachable();
 }
