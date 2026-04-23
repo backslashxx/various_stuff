@@ -12,6 +12,10 @@
 // zig cc -target aarch64-linux -Oz -s -static bench.c -o bench -Wno-format
 // taskset -c 0 ./bench
 
+#if defined(__arm__)
+#define SYS_newfstatat SYS_fstatat64
+#endif
+
 #define N_ITERATIONS 1000000
 
 __attribute__((hot, always_inline))

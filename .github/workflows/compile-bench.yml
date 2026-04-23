@@ -21,8 +21,10 @@ jobs:
           mkdir binaries
 
           zig cc -target aarch64-linux -s -Oz syscall_bench/bench.c -Wno-format -static -Wl,--gc-sections -o binaries/bench_arm64
+          zig cc -target arm-linux -s -Oz syscall_bench/bench.c -Wno-format -static -Wl,--gc-sections -o binaries/bench_arm
 
           file binaries/bench_arm64
+          file binaries/bench_arm
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
