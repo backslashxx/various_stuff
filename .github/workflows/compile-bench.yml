@@ -1,0 +1,33 @@
+name: bench
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Setup zig
+        uses: mlugg/setup-zig@v2
+        with:
+          version: master
+
+      - name: compile via zigcc
+        run: |
+          pwd
+          mkdir binaries
+
+          zig cc -target aarch64-linux -s -Oz syscall_bench/bench.c -Wno-format -static -Wl,--gc-sections -o binaries/bench_arm64
+
+          file binaries/bench_arm64
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: binaries
+          path: binaries/
+
+
