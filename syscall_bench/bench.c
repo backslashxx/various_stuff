@@ -41,7 +41,12 @@ int main() {
 	if (!syscall(SYS_newfstatat, AT_FDCWD, "/system/bin/su", &st, 0))
         	printf("[+] /system/bin/su found! sucompat is active.\n");
         else
-        	printf("[+] /system/bin/su not found! sucompat is disabled.\n");       	
+        	printf("[+] /system/bin/su not found! sucompat is disabled.\n");
+
+        printf("[!] note:\n");
+        printf("[ ] 1 = NULL\n");
+        printf("[ ] 2 = /dev/null\n");
+        printf("[ ] 3 = /system/bin/su_\n");
 
 	i = 0;
 	t0 = time_now_ns();
@@ -53,7 +58,7 @@ bench_newfstatat:
 		goto bench_newfstatat;
 
 	t1 = time_now_ns();
-	printf("newfstatat: %llu ns total (%llu ns avg)\n", (t1 - t0), (t1 - t0) / N_ITERATIONS);
+	printf("newfstatat1:\t (%llu ns avg)\n", (t1 - t0) / N_ITERATIONS);
 
 	i = 0;
 	t0 = time_now_ns();
@@ -65,7 +70,7 @@ bench_faccessat:
 		goto bench_faccessat;
 
 	t1 = time_now_ns();
-	printf("faccessat: %llu ns total (%llu ns avg)\n", (t1 - t0), (t1 - t0) / N_ITERATIONS);
+	printf("faccessat1:\t (%llu ns avg)\n", (t1 - t0) / N_ITERATIONS);
 
 	i = 0;
 	t0 = time_now_ns();
@@ -77,7 +82,7 @@ bench_execve:
 		goto bench_execve;
 
 	t1 = time_now_ns();
-	printf("execve:	 %llu ns total (%llu ns avg)\n", (t1 - t0), (t1 - t0) / N_ITERATIONS);
+	printf("execve1:\t (%llu ns avg)\n", (t1 - t0) / N_ITERATIONS);
 
 	i = 0;
 	t0 = time_now_ns();
@@ -89,7 +94,7 @@ bench_newfstatat_with_null:
 		goto bench_newfstatat_with_null;
 
 	t1 = time_now_ns();
-	printf("newfstatat w/ /dev/null %llu ns total (%llu ns avg)\n", (t1 - t0), (t1 - t0) / N_ITERATIONS);
+	printf("newfstatat2:\t (%llu ns avg)\n", (t1 - t0) / N_ITERATIONS);
 
 	i = 0;
 	t0 = time_now_ns();
@@ -101,7 +106,7 @@ bench_faccessat_with_null:
 		goto bench_faccessat_with_null;
 
 	t1 = time_now_ns();
-	printf("faccessat w/ /dev/null %llu ns total (%llu ns avg)\n", (t1 - t0), (t1 - t0) / N_ITERATIONS);
+	printf("faccessat2:\t (%llu ns avg)\n", (t1 - t0) / N_ITERATIONS);
 
 	i = 0;
 	t0 = time_now_ns();
@@ -113,43 +118,43 @@ bench_execve_with_null:
 		goto bench_execve_with_null;
 
 	t1 = time_now_ns();
-	printf("execve w/ /dev/null: %llu ns total (%llu ns avg)\n", (t1 - t0), (t1 - t0) / N_ITERATIONS);
+	printf("execve2:\t (%llu ns avg)\n", (t1 - t0) / N_ITERATIONS);
 
 	i = 0;
 	t0 = time_now_ns();
 bench_newfstatat_with_near_miss:
-	syscall(SYS_newfstatat, AT_FDCWD, "/system/bin/ss_", &st, 0);
+	syscall(SYS_newfstatat, AT_FDCWD, "/system/bin/su_", &st, 0);
 	asm volatile("" ::: "memory");
 	i++;
 	if (i < N_ITERATIONS)
 		goto bench_newfstatat_with_near_miss;
 
 	t1 = time_now_ns();
-	printf("newfstatat w/ near miss: %llu ns total (%llu ns avg)\n", (t1 - t0), (t1 - t0) / N_ITERATIONS);
+	printf("newfstatat3:\t (%llu ns avg)\n", (t1 - t0) / N_ITERATIONS);
 
 	i = 0;
 	t0 = time_now_ns();
 bench_faccessat_with_near_miss:
-	syscall(SYS_faccessat, AT_FDCWD, "/system/bin/ss_", F_OK);
+	syscall(SYS_faccessat, AT_FDCWD, "/system/bin/su_", F_OK);
 	asm volatile("" ::: "memory");
 	i++;
 	if (i < N_ITERATIONS)
 		goto bench_faccessat_with_near_miss;
 
 	t1 = time_now_ns();
-	printf("faccessat w/ near miss: %llu ns total (%llu ns avg)\n", (t1 - t0), (t1 - t0) / N_ITERATIONS);
+	printf("faccessat3:\t (%llu ns avg)\n", (t1 - t0) / N_ITERATIONS);
 
 	i = 0;
 	t0 = time_now_ns();
 bench_execve_with_near_miss:
-	syscall(SYS_execve, "/system/bin/ss_", NULL, NULL);
+	syscall(SYS_execve, "/system/bin/su_", NULL, NULL);
 	asm volatile("" ::: "memory");
 	i++;
 	if (i < N_ITERATIONS)
 		goto bench_execve_with_near_miss;
 
 	t1 = time_now_ns();
-	printf("execve w/ near miss: %llu ns total (%llu ns avg)\n", (t1 - t0), (t1 - t0) / N_ITERATIONS);
+	printf("execve3:\t (%llu ns avg)\n", (t1 - t0) / N_ITERATIONS);
 
 	return 0;
 }
