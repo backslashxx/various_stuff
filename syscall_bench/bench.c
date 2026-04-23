@@ -56,7 +56,6 @@ int main() {
 	t0 = time_now_ns();
 bench_newfstatat:
 	syscall(SYS_newfstatat, AT_FDCWD, (int)0, &st, 0);
-	asm volatile("" ::: "memory");
 	i++;
 	if (i < N_ITERATIONS)
 		goto bench_newfstatat;
@@ -68,7 +67,6 @@ bench_newfstatat:
 	t0 = time_now_ns();
 bench_faccessat:
 	syscall(SYS_faccessat, AT_FDCWD, "", F_OK);
-	asm volatile("" ::: "memory");
 	i++;
 	if (i < N_ITERATIONS)
 		goto bench_faccessat;
@@ -80,7 +78,6 @@ bench_faccessat:
 	t0 = time_now_ns();
 bench_execve:
 	syscall(SYS_execve, NULL, NULL, NULL);
-	asm volatile("" ::: "memory");
 	i++;
 	if (i < N_ITERATIONS)
 		goto bench_execve;
@@ -92,7 +89,6 @@ bench_execve:
 	t0 = time_now_ns();
 bench_newfstatat_with_null:
 	syscall(SYS_newfstatat, AT_FDCWD, "/dev/null", &st, 0);
-	asm volatile("" ::: "memory");
 	i++;
 	if (i < N_ITERATIONS)
 		goto bench_newfstatat_with_null;
@@ -104,7 +100,6 @@ bench_newfstatat_with_null:
 	t0 = time_now_ns();
 bench_faccessat_with_null:
 	syscall(SYS_faccessat, AT_FDCWD, "/dev/null", F_OK);
-	asm volatile("" ::: "memory");
 	i++;
 	if (i < N_ITERATIONS)
 		goto bench_faccessat_with_null;
@@ -116,7 +111,6 @@ bench_faccessat_with_null:
 	t0 = time_now_ns();
 bench_execve_with_null:
 	syscall(SYS_execve, "/dev/null", NULL, NULL);
-	asm volatile("" ::: "memory");
 	i++;
 	if (i < N_ITERATIONS)
 		goto bench_execve_with_null;
@@ -128,7 +122,6 @@ bench_execve_with_null:
 	t0 = time_now_ns();
 bench_newfstatat_with_near_miss:
 	syscall(SYS_newfstatat, AT_FDCWD, "/system/bin/su_", &st, 0);
-	asm volatile("" ::: "memory");
 	i++;
 	if (i < N_ITERATIONS)
 		goto bench_newfstatat_with_near_miss;
@@ -140,7 +133,6 @@ bench_newfstatat_with_near_miss:
 	t0 = time_now_ns();
 bench_faccessat_with_near_miss:
 	syscall(SYS_faccessat, AT_FDCWD, "/system/bin/su_", F_OK);
-	asm volatile("" ::: "memory");
 	i++;
 	if (i < N_ITERATIONS)
 		goto bench_faccessat_with_near_miss;
@@ -152,7 +144,6 @@ bench_faccessat_with_near_miss:
 	t0 = time_now_ns();
 bench_execve_with_near_miss:
 	syscall(SYS_execve, "/system/bin/su_", NULL, NULL);
-	asm volatile("" ::: "memory");
 	i++;
 	if (i < N_ITERATIONS)
 		goto bench_execve_with_near_miss;
