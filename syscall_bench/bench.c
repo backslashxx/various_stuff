@@ -55,7 +55,7 @@ int main() {
 	i = 0;
 	t0 = time_now_ns();
 bench_newfstatat:
-	syscall(SYS_newfstatat, AT_FDCWD, (int)0, &st, 0);
+	syscall(SYS_newfstatat, AT_FDCWD, NULL, &st, 0);
 	i++;
 	if (i < N_ITERATIONS)
 		goto bench_newfstatat;
@@ -66,7 +66,7 @@ bench_newfstatat:
 	i = 0;
 	t0 = time_now_ns();
 bench_faccessat:
-	syscall(SYS_faccessat, AT_FDCWD, "", F_OK);
+	syscall(SYS_faccessat, AT_FDCWD, NULL, F_OK);
 	i++;
 	if (i < N_ITERATIONS)
 		goto bench_faccessat;
