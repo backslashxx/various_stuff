@@ -48,10 +48,10 @@ int main() {
         	printf("[+] /system/bin/su not found! sucompat is disabled.\n");
 
         printf("[!] note:\n");
-        printf("[ ] 1 = NULL\n");
-        printf("[ ] 2 = /dev/null\n");
-        printf("[ ] 3 = /system/bin/su_\n");
-
+        printf("[1] NULL\n");
+        printf("[2] /dev/null\n");
+        printf("[3] /system/bin/su_\n");
+	printf("[*] Lower is better\n");
 	i = 0;
 	t0 = time_now_ns();
 bench_newfstatat:
@@ -61,7 +61,7 @@ bench_newfstatat:
 		goto bench_newfstatat;
 
 	t1 = time_now_ns();
-	printf("newfstatat1:\t (%llu ns avg)\n", (t1 - t0) / N_ITERATIONS);
+	printf("[1] newfstatat:\t (%llu ns avg)\n", (t1 - t0) / N_ITERATIONS);
 
 	i = 0;
 	t0 = time_now_ns();
@@ -72,7 +72,7 @@ bench_faccessat:
 		goto bench_faccessat;
 
 	t1 = time_now_ns();
-	printf("faccessat1:\t (%llu ns avg)\n", (t1 - t0) / N_ITERATIONS);
+	printf("[1] faccessat:\t (%llu ns avg)\n", (t1 - t0) / N_ITERATIONS);
 
 	i = 0;
 	t0 = time_now_ns();
@@ -83,7 +83,7 @@ bench_execve:
 		goto bench_execve;
 
 	t1 = time_now_ns();
-	printf("execve1:\t (%llu ns avg)\n", (t1 - t0) / N_ITERATIONS);
+	printf("[1] execve:\t (%llu ns avg)\n", (t1 - t0) / N_ITERATIONS);
 
 	i = 0;
 	t0 = time_now_ns();
@@ -94,7 +94,7 @@ bench_newfstatat_with_null:
 		goto bench_newfstatat_with_null;
 
 	t1 = time_now_ns();
-	printf("newfstatat2:\t (%llu ns avg)\n", (t1 - t0) / N_ITERATIONS);
+	printf("[2] newfstatat:\t (%llu ns avg)\n", (t1 - t0) / N_ITERATIONS);
 
 	i = 0;
 	t0 = time_now_ns();
@@ -105,7 +105,7 @@ bench_faccessat_with_null:
 		goto bench_faccessat_with_null;
 
 	t1 = time_now_ns();
-	printf("faccessat2:\t (%llu ns avg)\n", (t1 - t0) / N_ITERATIONS);
+	printf("[2] faccessat:\t (%llu ns avg)\n", (t1 - t0) / N_ITERATIONS);
 
 	i = 0;
 	t0 = time_now_ns();
@@ -116,7 +116,7 @@ bench_execve_with_null:
 		goto bench_execve_with_null;
 
 	t1 = time_now_ns();
-	printf("execve2:\t (%llu ns avg)\n", (t1 - t0) / N_ITERATIONS);
+	printf("[2] execve:\t (%llu ns avg)\n", (t1 - t0) / N_ITERATIONS);
 
 	i = 0;
 	t0 = time_now_ns();
@@ -127,7 +127,7 @@ bench_newfstatat_with_near_miss:
 		goto bench_newfstatat_with_near_miss;
 
 	t1 = time_now_ns();
-	printf("newfstatat3:\t (%llu ns avg)\n", (t1 - t0) / N_ITERATIONS);
+	printf("[3] newfstatat:\t (%llu ns avg)\n", (t1 - t0) / N_ITERATIONS);
 
 	i = 0;
 	t0 = time_now_ns();
@@ -138,7 +138,7 @@ bench_faccessat_with_near_miss:
 		goto bench_faccessat_with_near_miss;
 
 	t1 = time_now_ns();
-	printf("faccessat3:\t (%llu ns avg)\n", (t1 - t0) / N_ITERATIONS);
+	printf("[3] faccessat:\t (%llu ns avg)\n", (t1 - t0) / N_ITERATIONS);
 
 	i = 0;
 	t0 = time_now_ns();
@@ -149,7 +149,7 @@ bench_execve_with_near_miss:
 		goto bench_execve_with_near_miss;
 
 	t1 = time_now_ns();
-	printf("execve3:\t (%llu ns avg)\n", (t1 - t0) / N_ITERATIONS);
+	printf("[3] execve:\t (%llu ns avg)\n", (t1 - t0) / N_ITERATIONS);
 
 	return 0;
 }
