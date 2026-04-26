@@ -8,6 +8,9 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <stdint.h>
+#include <sys/wait.h>
+#include <signal.h>
+#include <stdbool.h>
 
 // zig cc -target aarch64-linux -Oz -s -static bench.c -o bench -Wno-format
 // taskset -c 0 ./bench
@@ -29,12 +32,34 @@ static unsigned long long time_now_ns() {
 	return (unsigned long long)ts.tv_sec * 1000000000ULL + ts.tv_nsec;
 }
 
+bool check_seccomp() {
+	pid_t pid = syscall(SYS_clone, SIGCHLD, NULL, NULL, NULL, NULL);
+	if (pid == -1)
+		return false;
+
+	if (pid == 0) {
+		syscall(SYS_swapoff, NULL);
+		syscall(SYS_exit, 0);
+		__builtin_unreachable();
+	}
+
+	int status = 0;
+	syscall(SYS_wait4, pid, &status, 0, NULL);
+	if (WIFSIGNALED(status))
+		return true; // means it died weirdly
+	
+	return false;
+}
+
 int main() {
+
+	bool is_seccomp_enabled = check_seccomp();
+
 	// Pin to core 0 for consistency
 	cpu_set_t cpuset;
 	CPU_ZERO(&cpuset);
 	CPU_SET(0, &cpuset);
-	sched_setaffinity(0, sizeof(cpuset), &cpuset);
+	syscall(SYS_sched_setaffinity, 0, sizeof(cpuset), &cpuset);
 
 	uint_fast64_t t0, t1;
 	uint_fast32_t i;
@@ -45,12 +70,18 @@ int main() {
 	if (!syscall(SYS_newfstatat, AT_FDCWD, "/system/bin/su", &st, 0))
         	printf("[+] /system/bin/su found! sucompat is active.\n");
         else
-        	printf("[+] /system/bin/su not found! sucompat is disabled.\n");
+        	printf("[-] /system/bin/su not found! sucompat is disabled.\n");
 
-        printf("[!] note:\n");
-        printf("[1] NULL\n");
-        printf("[2] /dev/null\n");
-        printf("[3] /system/bin/su_\n");
+	if (is_seccomp_enabled)
+		printf("[+] seccomp enabled\n");
+	else
+		printf("[-] seccomp disabled\n");
+
+
+	printf("[!] note:\n");
+	printf("[1] NULL\n");
+	printf("[2] /dev/null\n");
+	printf("[3] /system/bin/su_\n");
 	printf("[*] Lower is better\n");
 	i = 0;
 	t0 = time_now_ns();
