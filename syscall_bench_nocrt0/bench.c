@@ -129,6 +129,7 @@ static int c_main(long argc, char **argv, char **envp)
 	CPU_ZERO(&cpuset);
 	CPU_SET(0, &cpuset);
 	__syscall(SYS_sched_setaffinity, 0, sizeof(cpuset), &cpuset, NULL, NULL, NULL);
+	__syscall(SYS_setpriority, 0, 0, -20, NONE, NONE, NONE);
 
 	uint_fast64_t t0, t1;
 	uint_fast32_t i;
