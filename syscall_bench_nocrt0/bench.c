@@ -81,19 +81,23 @@ static bool check_seccomp() {
 
 #define SYS_newfstatat SYS_fstatat64
 
+// armeabi syscall 263 SYS_clock_gettime got renamed to SYS_clock_gettime32
 // https://syscalls.mebeim.net/?table=arm/32/eabi/v5.0
-#define SYS_clock_gettime 263
-
+// https://syscalls.mebeim.net/?table=arm/32/eabi/v6.17
 // NOTE: use is discouraged for due to y2038, but it should not matter for benchmarking
+
+// https://elixir.bootlin.com/linux/v7.0.1/source/include/vdso/time32.h
+struct old_timespec32 {
+	int32_t	tv_sec;
+	int32_t	tv_nsec;
+};
+
 __attribute__((hot, always_inline))
 static unsigned long long time_now_ns() {
-	struct {
-		long tv_sec;
-		long tv_nsec;
-	} ts32;
+	struct old_timespec32 ts32;
 
 	// CLOCK_MONOTONIC is 1
-	__syscall(SYS_clock_gettime, 1, (long)&ts32, NONE, NONE, NONE, NONE);
+	__syscall(SYS_clock_gettime32, 1, (long)&ts32, NONE, NONE, NONE, NONE);
 
 	return (unsigned long long)ts32.tv_sec * 1000000000ULL + ts32.tv_nsec;
 }
