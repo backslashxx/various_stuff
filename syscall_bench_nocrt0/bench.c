@@ -140,9 +140,9 @@ static int c_main(long argc, char **argv, char **envp)
 	print_out(iter_template, sizeof(iter_template) - 1);
 
 	const char su_found[] = "[+] /system/bin/su found! sucompat is active.\n";
-	const char su_not_found[] ="[-] /system/bin/su not found! sucompat is disabled.\n";
+	const char su_not_found[] = "[-] /system/bin/su not found! sucompat is disabled.\n";
 	const char seccomp_enabled[] = "[+] seccomp enabled\n";
-	const char seccomp_disabled[] ="[-] seccomp disabled\n";
+	const char seccomp_disabled[] = "[-] seccomp disabled\n";
 	const char extra_lines[] = 
 		"[!] note:\n"
 		"[1] NULL\n"
@@ -162,13 +162,14 @@ static int c_main(long argc, char **argv, char **envp)
 
 	print_out(extra_lines, sizeof(extra_lines) - 1 );
 
-
 	char newfstatat_template[] = "[1] newfstatat:\t ";
 	char faccessat_template[] = "[1] faccessat:\t ";
 	char execve_template[] = "[1] execve:\t ";
 
 	char result_template[] = "(0000000 ns avg)\n";
+	char newline[] = "\n";
 
+	print_out(newline, sizeof(newline) - 1 );
 	i = 0;
 	t0 = time_now_ns();
 bench_newfstatat:
@@ -211,6 +212,7 @@ bench_execve:
 	newfstatat_template[1] = '2';
 	faccessat_template[1] = '2';
 	execve_template[1] = '2';
+	print_out(newline, sizeof(newline) - 1 );
 
 	i = 0;
 	t0 = time_now_ns();
@@ -254,6 +256,7 @@ bench_execve_with_null:
 	newfstatat_template[1] = '3';
 	faccessat_template[1] = '3';
 	execve_template[1] = '3';
+	print_out(newline, sizeof(newline) - 1 );
 
 	i = 0;
 	t0 = time_now_ns();
