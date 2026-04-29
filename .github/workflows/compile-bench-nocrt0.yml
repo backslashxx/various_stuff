@@ -1,0 +1,46 @@
+name: bench nocrt0
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Setup zig
+        uses: mlugg/setup-zig@v2
+        with:
+          version: master
+
+      - name: grab sstrip from ELFkickers
+        run: |
+          curl -L https://www.muppetlabs.com/~breadbox/pub/software/ELFkickers-3.2.tar.gz -o sstrip.tar.gz
+          tar xf sstrip.tar.gz
+          make -C ELFkickers-3.2 sstrip
+          cp ELFkickers-3.2/sstrip/sstrip .
+
+      - name: compile via zigcc
+        run: |
+          pwd
+          chmod +x sstrip
+          mkdir binaries
+
+          zig cc -target aarch64-linux -s -Oz -Wno-int-conversion -std=c23 -static -Wl,--gc-sections,-z,norelro -fno-unwind-tables -Wl,--entry=__start -flto -fmerge-all-constants -Wno-unknown-attributes syscall_bench_nocrt0/bench.c -o binaries/bench_arm64
+          zig cc -target arm-linux -s -Oz -Wno-int-conversion -std=c23 -static -Wl,--gc-sections,-z,norelro -fno-unwind-tables -Wl,--entry=__start -flto -fmerge-all-constants -Wno-unknown-attributes syscall_bench_nocrt0/bench.c -o binaries/bench_arm
+
+          wc -c binaries/bench*
+          file binaries/bench*
+          
+          for file in binaries/*; do ./sstrip $file ; done
+          
+          wc -c binaries/bench*
+          file binaries/bench*          
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: binaries
+          path: binaries/
