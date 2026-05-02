@@ -86,6 +86,7 @@ static bool check_seccomp() {
 // https://syscalls.mebeim.net/?table=arm/32/eabi/v5.0
 // https://syscalls.mebeim.net/?table=arm/32/eabi/v6.17
 // NOTE: use is discouraged for due to y2038, but it should not matter for benchmarking
+#define SYS_clock_gettime32 263
 
 // https://elixir.bootlin.com/linux/v7.0.1/source/include/vdso/time32.h
 struct old_timespec32 {
