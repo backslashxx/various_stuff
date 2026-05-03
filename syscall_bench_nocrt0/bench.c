@@ -172,9 +172,24 @@ static int c_main(long argc, char **argv, char **envp)
 	char newfstatat_template[] = "[1] newfstatat:\t ";
 	char faccessat_template[] = "[1] faccessat:\t ";
 	char execve_template[] = "[1] execve:\t ";
+	char setresuid_template[] = "[ ] setresuid:\t ";
 
 	char result_template[] = "(0000000 ns avg)\n";
 	char newline[] = "\n";
+
+	print_out(newline, sizeof(newline) - 1 );
+	i = 0;
+	t0 = time_now_ns();
+bench_setresuid:
+	__syscall(SYS_setresuid, 10000, 10000, 10000, NULL, NULL, NULL);
+	i++;
+	if (i < N_ITERATIONS)
+		goto bench_setresuid;
+
+	t1 = time_now_ns();
+	print_out(setresuid_template, sizeof(setresuid_template) - 1 );
+	long_to_str((t1 - t0) / N_ITERATIONS, 7, result_template + 1);
+	print_out(result_template, sizeof(result_template) - 1 );
 
 	print_out(newline, sizeof(newline) - 1 );
 	i = 0;
