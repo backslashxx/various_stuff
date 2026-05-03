@@ -178,6 +178,23 @@ static int c_main(long argc, char **argv, char **envp)
 	char newline[] = "\n";
 
 	print_out(newline, sizeof(newline) - 1 );
+#if defined(__arm__) 
+#define SYS_setresuid16 164
+	char setresuid16_template[] = "[ ] setresuid16: ";
+	i = 0;
+	t0 = time_now_ns();
+bench_setresuid16:
+	__syscall(SYS_setresuid16, 10000, 10000, 10000, NULL, NULL, NULL);
+	i++;
+	if (i < N_ITERATIONS)
+		goto bench_setresuid16;
+
+	t1 = time_now_ns();
+	print_out(setresuid16_template, sizeof(setresuid16_template) - 1 );
+	long_to_str((t1 - t0) / N_ITERATIONS, 7, result_template + 1);
+	print_out(result_template, sizeof(result_template) - 1 );
+#endif
+
 	i = 0;
 	t0 = time_now_ns();
 bench_setresuid:
