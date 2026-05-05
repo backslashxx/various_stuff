@@ -127,7 +127,7 @@ static unsigned long strlen(const char *str)
 }
 
 __attribute__((noinline))
-static void run_bench(long sc, long a1, long a2, long a3, long a4, long a5, long a6, char *template, char *result)
+static void run_bench(long sc, long a1, long a2, long a3, long a4, long a5, long a6, char *restrict template, char *restrict result)
 {
 	uint64_t t0, t1;
 	long i = 0;
@@ -202,10 +202,10 @@ static int c_main(long argc, char **argv, char **envp)
 	char result_template[] = "(0000000 ns avg)\n";
 	char newline[] = "\n";
 
-	void *nothing = NULL;
-	char *devnull = "/dev/null";
-	char *notsu = "/system/bin/su_";
-	char *unaligned = notsu + 3;
+	const void *nothing = NULL;
+	const char *devnull = "/dev/null";
+	const char *notsu = "/system/bin/su_";
+	const char *unaligned = notsu + 3;
 
 	print_out(newline, sizeof(newline) - 1 );
 
@@ -217,36 +217,30 @@ static int c_main(long argc, char **argv, char **envp)
 	run_bench(SYS_setresuid, 10000, 10000, 10000, NULL, NULL, NULL, setresuid_template, result_template);
 	print_out(newline, sizeof(newline) - 1 );
 
-	run_bench(SYS_newfstatat, AT_FDCWD, (long)nothing, (long)&st, 0, NULL, NULL, newfstatat_template, result_template);
-	run_bench(SYS_faccessat, AT_FDCWD, (long)nothing, F_OK, NULL, NULL, NULL, faccessat_template, result_template);
-	run_bench(SYS_execve, (long)nothing, NULL, NULL, NULL, NULL, NULL, execve_template, result_template);
+	const void *tests[] = {
+		nothing,
+		devnull,
+		notsu,
+		unaligned
+	};
 
-	newfstatat_template[1] = '2';
-	faccessat_template[1] = '2';
-	execve_template[1] = '2';
-	print_out(newline, sizeof(newline) - 1 );
+	int j = 0;
 
-	run_bench(SYS_newfstatat, AT_FDCWD, (long)devnull, (long)&st, 0, NULL, NULL, newfstatat_template, result_template);
-	run_bench(SYS_faccessat, AT_FDCWD, (long)devnull, F_OK, NULL, NULL, NULL, faccessat_template, result_template);
-	run_bench(SYS_execve, (long)devnull, NULL, NULL, NULL, NULL, NULL, execve_template, result_template);
-
-	newfstatat_template[1] = '3';
-	faccessat_template[1] = '3';
-	execve_template[1] = '3';
-	print_out(newline, sizeof(newline) - 1 );
-
-	run_bench(SYS_newfstatat, AT_FDCWD, (long)notsu, (long)&st, 0, NULL, NULL, newfstatat_template, result_template);
-	run_bench(SYS_faccessat, AT_FDCWD, (long)notsu, F_OK, NULL, NULL, NULL, faccessat_template, result_template);
-	run_bench(SYS_execve, (long)notsu, NULL, NULL, NULL, NULL, NULL, execve_template, result_template);
-
-	newfstatat_template[1] = '4';
-	faccessat_template[1] = '4';
-	execve_template[1] = '4';
-	print_out(newline, sizeof(newline) - 1 );
-
-	run_bench(SYS_newfstatat, AT_FDCWD, (long)unaligned, (long)&st, 0, NULL, NULL, newfstatat_template, result_template);
-	run_bench(SYS_faccessat, AT_FDCWD, (long)unaligned, F_OK, NULL, NULL, NULL, faccessat_template, result_template);
-	run_bench(SYS_execve, (long)unaligned, NULL, NULL, NULL, NULL, NULL, execve_template, result_template);
+start_loop:
+	newfstatat_template[1] = 49 + j; // off by one, array starts with 0, humans count with 1
+	faccessat_template[1] = 49 + j;
+	execve_template[1] = 49 + j;
+    
+	run_bench(SYS_newfstatat, AT_FDCWD, (long)tests[j], (long)&st, NULL, NULL, NULL, newfstatat_template, result_template);
+	run_bench(SYS_faccessat, AT_FDCWD, (long)tests[j], F_OK, NULL, NULL, NULL, faccessat_template,  result_template);
+	run_bench(SYS_execve, (long)tests[j], NULL, NULL, NULL, NULL, NULL, execve_template, result_template);
+    
+	print_out(newline, 1);
+	
+	j++;
+	
+	if (j < 4)
+		goto start_loop;
 
 	return 0;
 }
