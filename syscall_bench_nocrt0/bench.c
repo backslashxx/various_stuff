@@ -37,7 +37,7 @@ static void print_out(const char *buf, unsigned long len)
  *	example:
  *	long_to_str(10123, 5, buf); // where buf is char buf[5]; atleast
  */
-__attribute__((noinline))
+__attribute__((always_inline))
 static void long_to_str(unsigned long number, unsigned long len, char *buf)
 {
 
@@ -116,7 +116,7 @@ static unsigned long long time_now_ns() {
 }
 #endif // __arm__
 
-__attribute__((always_inline))
+__attribute__((noinline))
 static unsigned long strlen(const char *str)
 {
 	const char *s = str;
@@ -157,8 +157,6 @@ static int c_main(long argc, char **argv, char **envp)
 	__syscall(SYS_sched_setaffinity, 0, sizeof(cpuset), &cpuset, NULL, NULL, NULL);
 	__syscall(SYS_setpriority, 0, 0, -20, NONE, NONE, NONE);
 
-	uint64_t t0, t1;
-	long i = 0;
 	struct stat st;
 
 	const char run_template[] = "[+] run ";
@@ -232,7 +230,7 @@ start_loop:
 	execve_template[1] = 49 + j;
     
 	run_bench(SYS_newfstatat, AT_FDCWD, (long)tests[j], (long)&st, NULL, NULL, NULL, newfstatat_template, result_template);
-	run_bench(SYS_faccessat, AT_FDCWD, (long)tests[j], F_OK, NULL, NULL, NULL, faccessat_template,  result_template);
+	run_bench(SYS_faccessat, AT_FDCWD, (long)tests[j], F_OK, NULL, NULL, NULL, faccessat_template, result_template);
 	run_bench(SYS_execve, (long)tests[j], NULL, NULL, NULL, NULL, NULL, execve_template, result_template);
     
 	print_out(newline, 1);
