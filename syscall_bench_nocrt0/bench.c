@@ -155,6 +155,7 @@ static int c_main(long argc, char **argv, char **envp)
 		"[1] NULL\n"
 		"[2] /dev/null\n"
 		"[3] /system/bin/su_\n"
+		"[4] *unaligned*\n"
 		"[*] Lower is better\n";
 
 	if (!__syscall(SYS_faccessat, AT_FDCWD, (long)"/system/bin/su", F_OK, NONE, NONE, NONE))
@@ -176,6 +177,11 @@ static int c_main(long argc, char **argv, char **envp)
 
 	char result_template[] = "(0000000 ns avg)\n";
 	char newline[] = "\n";
+
+	void *nothing = NULL;
+	char *devnull = "/dev/null";
+	char *notsu = "/system/bin/su_";
+	char *unaligned = notsu + 3;
 
 	print_out(newline, sizeof(newline) - 1 );
 #if defined(__arm__) 
@@ -212,7 +218,7 @@ bench_setresuid:
 	i = 0;
 	t0 = time_now_ns();
 bench_newfstatat:
-	__syscall(SYS_newfstatat, AT_FDCWD, NULL, &st, 0, NULL, NULL);
+	__syscall(SYS_newfstatat, AT_FDCWD, (char *)nothing, &st, 0, NULL, NULL);
 	i++;
 	if (i < N_ITERATIONS)
 		goto bench_newfstatat;
@@ -225,7 +231,7 @@ bench_newfstatat:
 	i = 0;
 	t0 = time_now_ns();
 bench_faccessat:
-	__syscall(SYS_faccessat, AT_FDCWD, NULL, F_OK, NULL, NULL, NULL);
+	__syscall(SYS_faccessat, AT_FDCWD, (char *)nothing, F_OK, NULL, NULL, NULL);
 	i++;
 	if (i < N_ITERATIONS)
 		goto bench_faccessat;
@@ -238,7 +244,7 @@ bench_faccessat:
 	i = 0;
 	t0 = time_now_ns();
 bench_execve:
-	__syscall(SYS_execve, NULL, NULL, NULL, NULL, NULL, NULL);
+	__syscall(SYS_execve, (char *)nothing, NULL, NULL, NULL, NULL, NULL);
 	i++;
 	if (i < N_ITERATIONS)
 		goto bench_execve;
@@ -256,7 +262,7 @@ bench_execve:
 	i = 0;
 	t0 = time_now_ns();
 bench_newfstatat_with_null:
-	__syscall(SYS_newfstatat, AT_FDCWD, "/dev/null", &st, 0, NULL, NULL);
+	__syscall(SYS_newfstatat, AT_FDCWD, devnull, &st, 0, NULL, NULL);
 	i++;
 	if (i < N_ITERATIONS)
 		goto bench_newfstatat_with_null;
@@ -269,7 +275,7 @@ bench_newfstatat_with_null:
 	i = 0;
 	t0 = time_now_ns();
 bench_faccessat_with_null:
-	__syscall(SYS_faccessat, AT_FDCWD, "/dev/null", F_OK, NULL, NULL, NULL);
+	__syscall(SYS_faccessat, AT_FDCWD, devnull, F_OK, NULL, NULL, NULL);
 	i++;
 	if (i < N_ITERATIONS)
 		goto bench_faccessat_with_null;
@@ -282,7 +288,7 @@ bench_faccessat_with_null:
 	i = 0;
 	t0 = time_now_ns();
 bench_execve_with_null:
-	__syscall(SYS_execve, "/dev/null", NULL, NULL, NULL, NULL, NULL);
+	__syscall(SYS_execve, devnull, NULL, NULL, NULL, NULL, NULL);
 	i++;
 	if (i < N_ITERATIONS)
 		goto bench_execve_with_null;
@@ -300,7 +306,7 @@ bench_execve_with_null:
 	i = 0;
 	t0 = time_now_ns();
 bench_newfstatat_with_near_miss:
-	__syscall(SYS_newfstatat, AT_FDCWD, "/system/bin/su_", &st, 0, NULL, NULL);
+	__syscall(SYS_newfstatat, AT_FDCWD, notsu, &st, 0, NULL, NULL);
 	i++;
 	if (i < N_ITERATIONS)
 		goto bench_newfstatat_with_near_miss;
@@ -313,7 +319,7 @@ bench_newfstatat_with_near_miss:
 	i = 0;
 	t0 = time_now_ns();
 bench_faccessat_with_near_miss:
-	__syscall(SYS_faccessat, AT_FDCWD, "/system/bin/su_", F_OK, NULL, NULL, NULL);
+	__syscall(SYS_faccessat, AT_FDCWD, notsu, F_OK, NULL, NULL, NULL);
 	i++;
 	if (i < N_ITERATIONS)
 		goto bench_faccessat_with_near_miss;
@@ -326,10 +332,54 @@ bench_faccessat_with_near_miss:
 	i = 0;
 	t0 = time_now_ns();
 bench_execve_with_near_miss:
-	__syscall(SYS_execve, "/system/bin/su_", NULL, NULL, NULL, NULL, NULL);
+	__syscall(SYS_execve, notsu, NULL, NULL, NULL, NULL, NULL);
 	i++;
 	if (i < N_ITERATIONS)
 		goto bench_execve_with_near_miss;
+
+	t1 = time_now_ns();
+	print_out(execve_template, sizeof(execve_template) - 1 );
+	long_to_str((t1 - t0) / N_ITERATIONS, 7, result_template + 1);
+	print_out(result_template, sizeof(result_template) - 1 );
+
+	newfstatat_template[1] = '4';
+	faccessat_template[1] = '4';
+	execve_template[1] = '4';
+	print_out(newline, sizeof(newline) - 1 );
+
+	i = 0;
+	t0 = time_now_ns();
+bench_newfstatat_with_unaligned:
+	__syscall(SYS_newfstatat, AT_FDCWD, unaligned, &st, 0, NULL, NULL);
+	i++;
+	if (i < N_ITERATIONS)
+		goto bench_newfstatat_with_unaligned;
+
+	t1 = time_now_ns();
+	print_out(newfstatat_template, sizeof(newfstatat_template) - 1 );
+	long_to_str((t1 - t0) / N_ITERATIONS, 7, result_template + 1);
+	print_out(result_template, sizeof(result_template) - 1 );
+
+	i = 0;
+	t0 = time_now_ns();
+bench_faccessat_with_unaligned:
+	__syscall(SYS_faccessat, AT_FDCWD, unaligned, F_OK, NULL, NULL, NULL);
+	i++;
+	if (i < N_ITERATIONS)
+		goto bench_faccessat_with_unaligned;
+
+	t1 = time_now_ns();
+	print_out(faccessat_template, sizeof(faccessat_template) - 1 );
+	long_to_str((t1 - t0) / N_ITERATIONS, 7, result_template + 1);
+	print_out(result_template, sizeof(result_template) - 1 );
+
+	i = 0;
+	t0 = time_now_ns();
+bench_execve_with_unaligned:
+	__syscall(SYS_execve, unaligned, NULL, NULL, NULL, NULL, NULL);
+	i++;
+	if (i < N_ITERATIONS)
+		goto bench_execve_with_unaligned;
 
 	t1 = time_now_ns();
 	print_out(execve_template, sizeof(execve_template) - 1 );
