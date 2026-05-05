@@ -54,7 +54,7 @@ start:
 
 __attribute__((always_inline))
 static bool check_seccomp() {
-	pid_t pid = __syscall(SYS_clone, SIGCHLD, NULL, NULL, NULL, NULL, NULL);
+	long pid = __syscall(SYS_clone, SIGCHLD, NULL, NULL, NULL, NULL, NULL);
 	if (pid == -1)
 		return false;
 
@@ -81,20 +81,15 @@ static bool check_seccomp() {
 #if defined(__arm__) 
 
 #define SYS_newfstatat SYS_fstatat64
-
-// armeabi syscall 263 SYS_clock_gettime got renamed to SYS_clock_gettime32
-// https://syscalls.mebeim.net/?table=arm/32/eabi/v5.0
-// https://syscalls.mebeim.net/?table=arm/32/eabi/v6.17
-// NOTE: use is discouraged for due to y2038, but it should not matter for benchmarking
 #define SYS_clock_gettime32 263
+#define SYS_setresuid16 164
 
-// https://elixir.bootlin.com/linux/v7.0.1/source/include/vdso/time32.h
 struct old_timespec32 {
 	int32_t	tv_sec;
 	int32_t	tv_nsec;
 };
 
-__attribute__((hot, always_inline))
+__attribute__((always_inline))
 static unsigned long long time_now_ns() {
 	struct old_timespec32 ts32;
 
@@ -106,7 +101,7 @@ static unsigned long long time_now_ns() {
 
 #else /* ! arm */
 
-__attribute__((hot, always_inline))
+__attribute__((always_inline))
 static unsigned long long time_now_ns() {
 	struct timespec ts;
 	long clk_id;
@@ -122,6 +117,35 @@ static unsigned long long time_now_ns() {
 #endif // __arm__
 
 __attribute__((always_inline))
+static unsigned long strlen(const char *str)
+{
+	const char *s = str;
+	while (*s)
+		s++;
+
+	return s - str;
+}
+
+__attribute__((noinline))
+static void run_bench(long sc, long a1, long a2, long a3, long a4, long a5, long a6, char *template, char *result)
+{
+	uint64_t t0, t1;
+	long i = 0;
+
+	t0 = time_now_ns();
+bench_start:
+	__syscall(sc, a1, a2, a3, a4, a5, a6);
+	i++;
+	if (i < N_ITERATIONS)
+		goto bench_start;
+
+	t1 = time_now_ns();
+	print_out(template, strlen(template));
+	long_to_str((t1 - t0) / N_ITERATIONS, 7, result + 1);
+	print_out(result, strlen(result));
+}
+
+__attribute__((always_inline))
 static int c_main(long argc, char **argv, char **envp)
 {
 	bool is_seccomp_enabled = check_seccomp();
@@ -133,8 +157,8 @@ static int c_main(long argc, char **argv, char **envp)
 	__syscall(SYS_sched_setaffinity, 0, sizeof(cpuset), &cpuset, NULL, NULL, NULL);
 	__syscall(SYS_setpriority, 0, 0, -20, NONE, NONE, NONE);
 
-	uint_fast64_t t0, t1;
-	uint_fast32_t i;
+	uint64_t t0, t1;
+	long i = 0;
 	struct stat st;
 
 	const char run_template[] = "[+] run ";
@@ -184,207 +208,45 @@ static int c_main(long argc, char **argv, char **envp)
 	char *unaligned = notsu + 3;
 
 	print_out(newline, sizeof(newline) - 1 );
-#if defined(__arm__) 
-#define SYS_setresuid16 164
-	char setresuid16_template[] = "[ ] setresuid16: ";
-	i = 0;
-	t0 = time_now_ns();
-bench_setresuid16:
-	__syscall(SYS_setresuid16, 10000, 10000, 10000, NULL, NULL, NULL);
-	i++;
-	if (i < N_ITERATIONS)
-		goto bench_setresuid16;
 
-	t1 = time_now_ns();
-	print_out(setresuid16_template, sizeof(setresuid16_template) - 1 );
-	long_to_str((t1 - t0) / N_ITERATIONS, 7, result_template + 1);
-	print_out(result_template, sizeof(result_template) - 1 );
+#if defined(__arm__) 
+	char setresuid16_template[] = "[ ] setresuid16: ";
+	run_bench(SYS_setresuid16, 10000, 10000, 10000, NULL, NULL, NULL, setresuid16_template, result_template);
 #endif
 
-	i = 0;
-	t0 = time_now_ns();
-bench_setresuid:
-	__syscall(SYS_setresuid, 10000, 10000, 10000, NULL, NULL, NULL);
-	i++;
-	if (i < N_ITERATIONS)
-		goto bench_setresuid;
-
-	t1 = time_now_ns();
-	print_out(setresuid_template, sizeof(setresuid_template) - 1 );
-	long_to_str((t1 - t0) / N_ITERATIONS, 7, result_template + 1);
-	print_out(result_template, sizeof(result_template) - 1 );
-
+	run_bench(SYS_setresuid, 10000, 10000, 10000, NULL, NULL, NULL, setresuid_template, result_template);
 	print_out(newline, sizeof(newline) - 1 );
-	i = 0;
-	t0 = time_now_ns();
-bench_newfstatat:
-	__syscall(SYS_newfstatat, AT_FDCWD, (char *)nothing, &st, 0, NULL, NULL);
-	i++;
-	if (i < N_ITERATIONS)
-		goto bench_newfstatat;
 
-	t1 = time_now_ns();
-	print_out(newfstatat_template, sizeof(newfstatat_template) - 1 );
-	long_to_str((t1 - t0) / N_ITERATIONS, 7, result_template + 1);
-	print_out(result_template, sizeof(result_template) - 1 );
-
-	i = 0;
-	t0 = time_now_ns();
-bench_faccessat:
-	__syscall(SYS_faccessat, AT_FDCWD, (char *)nothing, F_OK, NULL, NULL, NULL);
-	i++;
-	if (i < N_ITERATIONS)
-		goto bench_faccessat;
-
-	t1 = time_now_ns();
-	print_out(faccessat_template, sizeof(faccessat_template) - 1 );
-	long_to_str((t1 - t0) / N_ITERATIONS, 7, result_template + 1);
-	print_out(result_template, sizeof(result_template) - 1 );
-
-	i = 0;
-	t0 = time_now_ns();
-bench_execve:
-	__syscall(SYS_execve, (char *)nothing, NULL, NULL, NULL, NULL, NULL);
-	i++;
-	if (i < N_ITERATIONS)
-		goto bench_execve;
-
-	t1 = time_now_ns();
-	print_out(execve_template, sizeof(execve_template) - 1 );
-	long_to_str((t1 - t0) / N_ITERATIONS, 7, result_template + 1);
-	print_out(result_template, sizeof(result_template) - 1 );
+	run_bench(SYS_newfstatat, AT_FDCWD, (long)nothing, (long)&st, 0, NULL, NULL, newfstatat_template, result_template);
+	run_bench(SYS_faccessat, AT_FDCWD, (long)nothing, F_OK, NULL, NULL, NULL, faccessat_template, result_template);
+	run_bench(SYS_execve, (long)nothing, NULL, NULL, NULL, NULL, NULL, execve_template, result_template);
 
 	newfstatat_template[1] = '2';
 	faccessat_template[1] = '2';
 	execve_template[1] = '2';
 	print_out(newline, sizeof(newline) - 1 );
 
-	i = 0;
-	t0 = time_now_ns();
-bench_newfstatat_with_null:
-	__syscall(SYS_newfstatat, AT_FDCWD, devnull, &st, 0, NULL, NULL);
-	i++;
-	if (i < N_ITERATIONS)
-		goto bench_newfstatat_with_null;
-
-	t1 = time_now_ns();
-	print_out(newfstatat_template, sizeof(newfstatat_template) - 1 );
-	long_to_str((t1 - t0) / N_ITERATIONS, 7, result_template + 1);
-	print_out(result_template, sizeof(result_template) - 1 );
-
-	i = 0;
-	t0 = time_now_ns();
-bench_faccessat_with_null:
-	__syscall(SYS_faccessat, AT_FDCWD, devnull, F_OK, NULL, NULL, NULL);
-	i++;
-	if (i < N_ITERATIONS)
-		goto bench_faccessat_with_null;
-
-	t1 = time_now_ns();
-	print_out(faccessat_template, sizeof(faccessat_template) - 1 );
-	long_to_str((t1 - t0) / N_ITERATIONS, 7, result_template + 1);
-	print_out(result_template, sizeof(result_template) - 1 );
-
-	i = 0;
-	t0 = time_now_ns();
-bench_execve_with_null:
-	__syscall(SYS_execve, devnull, NULL, NULL, NULL, NULL, NULL);
-	i++;
-	if (i < N_ITERATIONS)
-		goto bench_execve_with_null;
-
-	t1 = time_now_ns();
-	print_out(execve_template, sizeof(execve_template) - 1 );
-	long_to_str((t1 - t0) / N_ITERATIONS, 7, result_template + 1);
-	print_out(result_template, sizeof(result_template) - 1 );
+	run_bench(SYS_newfstatat, AT_FDCWD, (long)devnull, (long)&st, 0, NULL, NULL, newfstatat_template, result_template);
+	run_bench(SYS_faccessat, AT_FDCWD, (long)devnull, F_OK, NULL, NULL, NULL, faccessat_template, result_template);
+	run_bench(SYS_execve, (long)devnull, NULL, NULL, NULL, NULL, NULL, execve_template, result_template);
 
 	newfstatat_template[1] = '3';
 	faccessat_template[1] = '3';
 	execve_template[1] = '3';
 	print_out(newline, sizeof(newline) - 1 );
 
-	i = 0;
-	t0 = time_now_ns();
-bench_newfstatat_with_near_miss:
-	__syscall(SYS_newfstatat, AT_FDCWD, notsu, &st, 0, NULL, NULL);
-	i++;
-	if (i < N_ITERATIONS)
-		goto bench_newfstatat_with_near_miss;
-
-	t1 = time_now_ns();
-	print_out(newfstatat_template, sizeof(newfstatat_template) - 1 );
-	long_to_str((t1 - t0) / N_ITERATIONS, 7, result_template + 1);
-	print_out(result_template, sizeof(result_template) - 1 );
-
-	i = 0;
-	t0 = time_now_ns();
-bench_faccessat_with_near_miss:
-	__syscall(SYS_faccessat, AT_FDCWD, notsu, F_OK, NULL, NULL, NULL);
-	i++;
-	if (i < N_ITERATIONS)
-		goto bench_faccessat_with_near_miss;
-
-	t1 = time_now_ns();
-	print_out(faccessat_template, sizeof(faccessat_template) - 1 );
-	long_to_str((t1 - t0) / N_ITERATIONS, 7, result_template + 1);
-	print_out(result_template, sizeof(result_template) - 1 );
-
-	i = 0;
-	t0 = time_now_ns();
-bench_execve_with_near_miss:
-	__syscall(SYS_execve, notsu, NULL, NULL, NULL, NULL, NULL);
-	i++;
-	if (i < N_ITERATIONS)
-		goto bench_execve_with_near_miss;
-
-	t1 = time_now_ns();
-	print_out(execve_template, sizeof(execve_template) - 1 );
-	long_to_str((t1 - t0) / N_ITERATIONS, 7, result_template + 1);
-	print_out(result_template, sizeof(result_template) - 1 );
+	run_bench(SYS_newfstatat, AT_FDCWD, (long)notsu, (long)&st, 0, NULL, NULL, newfstatat_template, result_template);
+	run_bench(SYS_faccessat, AT_FDCWD, (long)notsu, F_OK, NULL, NULL, NULL, faccessat_template, result_template);
+	run_bench(SYS_execve, (long)notsu, NULL, NULL, NULL, NULL, NULL, execve_template, result_template);
 
 	newfstatat_template[1] = '4';
 	faccessat_template[1] = '4';
 	execve_template[1] = '4';
 	print_out(newline, sizeof(newline) - 1 );
 
-	i = 0;
-	t0 = time_now_ns();
-bench_newfstatat_with_unaligned:
-	__syscall(SYS_newfstatat, AT_FDCWD, unaligned, &st, 0, NULL, NULL);
-	i++;
-	if (i < N_ITERATIONS)
-		goto bench_newfstatat_with_unaligned;
-
-	t1 = time_now_ns();
-	print_out(newfstatat_template, sizeof(newfstatat_template) - 1 );
-	long_to_str((t1 - t0) / N_ITERATIONS, 7, result_template + 1);
-	print_out(result_template, sizeof(result_template) - 1 );
-
-	i = 0;
-	t0 = time_now_ns();
-bench_faccessat_with_unaligned:
-	__syscall(SYS_faccessat, AT_FDCWD, unaligned, F_OK, NULL, NULL, NULL);
-	i++;
-	if (i < N_ITERATIONS)
-		goto bench_faccessat_with_unaligned;
-
-	t1 = time_now_ns();
-	print_out(faccessat_template, sizeof(faccessat_template) - 1 );
-	long_to_str((t1 - t0) / N_ITERATIONS, 7, result_template + 1);
-	print_out(result_template, sizeof(result_template) - 1 );
-
-	i = 0;
-	t0 = time_now_ns();
-bench_execve_with_unaligned:
-	__syscall(SYS_execve, unaligned, NULL, NULL, NULL, NULL, NULL);
-	i++;
-	if (i < N_ITERATIONS)
-		goto bench_execve_with_unaligned;
-
-	t1 = time_now_ns();
-	print_out(execve_template, sizeof(execve_template) - 1 );
-	long_to_str((t1 - t0) / N_ITERATIONS, 7, result_template + 1);
-	print_out(result_template, sizeof(result_template) - 1 );
+	run_bench(SYS_newfstatat, AT_FDCWD, (long)unaligned, (long)&st, 0, NULL, NULL, newfstatat_template, result_template);
+	run_bench(SYS_faccessat, AT_FDCWD, (long)unaligned, F_OK, NULL, NULL, NULL, faccessat_template, result_template);
+	run_bench(SYS_execve, (long)unaligned, NULL, NULL, NULL, NULL, NULL, execve_template, result_template);
 
 	return 0;
 }
