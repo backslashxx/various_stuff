@@ -10,15 +10,14 @@
 #include <stdint.h>
 #include <sys/wait.h>
 #include <signal.h>
-#include <stdbool.h>
 
 #include "small_rt.h"
 
 // zig cc -target aarch64-linux -s -Oz -Wno-int-conversion -std=c23 -static -Wl,--gc-sections,-z,norelro -fno-unwind-tables -Wl,--entry=__start -flto -fmerge-all-constants -Wno-unknown-attributes syscall_bench_nocrt0/bench.c -o bench_arm64
 // zig cc -target arm-linux -s -Oz -Wno-int-conversion -std=c23 -static -Wl,--gc-sections,-z,norelro -fno-unwind-tables -Wl,--entry=__start -flto -fmerge-all-constants -Wno-unknown-attributes syscall_bench_nocrt0/bench.c -o bench_arm
 
-#define N_ITERATIONS 1000000
-#define N_ITERATION_DIGITS 7
+constexpr auto n_iterations = 1000000;
+constexpr auto n_iteration_digits = 7;
 
 __attribute__((noinline))
 static void print_out(const char *buf, unsigned long len)
@@ -136,12 +135,12 @@ static void run_bench(long sc, long a1, long a2, long a3, long a4, long a5, long
 bench_start:
 	__syscall(sc, a1, a2, a3, a4, a5, a6);
 	i++;
-	if (i < N_ITERATIONS)
+	if (i < n_iterations)
 		goto bench_start;
 
 	t1 = time_now_ns();
 	print_out(template, strlen(template));
-	long_to_str((t1 - t0) / N_ITERATIONS, 7, result + 1);
+	long_to_str((t1 - t0) / n_iterations, 7, result + 1);
 	print_out(result, strlen(result));
 }
 
@@ -151,8 +150,7 @@ static int c_main(long argc, char **argv, char **envp)
 	bool is_seccomp_enabled = check_seccomp();
 
 	// Pin to core 0 for consistency
-	cpu_set_t cpuset;
-	CPU_ZERO(&cpuset);
+	cpu_set_t cpuset = {};
 	CPU_SET(0, &cpuset);
 	__syscall(SYS_sched_setaffinity, 0, sizeof(cpuset), &cpuset, NULL, NULL, NULL);
 	__syscall(SYS_setpriority, 0, 0, -20, NONE, NONE, NONE);
@@ -160,12 +158,12 @@ static int c_main(long argc, char **argv, char **envp)
 	struct stat st;
 
 	const char run_template[] = "[+] run ";
-	char iter_buf[N_ITERATION_DIGITS];
+	char iter_buf[n_iteration_digits];
 	const char iter_template[] = " iterations per syscall...\n";
 
 	print_out(run_template, sizeof(run_template) - 1);
-	long_to_str(N_ITERATIONS, N_ITERATION_DIGITS, iter_buf);
-	print_out(iter_buf, N_ITERATION_DIGITS);
+	long_to_str(n_iterations, n_iteration_digits, iter_buf);
+	print_out(iter_buf, n_iteration_digits);
 	print_out(iter_template, sizeof(iter_template) - 1);
 
 	const char su_found[] = "[+] /system/bin/su found! sucompat is active.\n";
@@ -200,7 +198,7 @@ static int c_main(long argc, char **argv, char **envp)
 	char result_template[] = "(0000000 ns avg)\n";
 	char newline[] = "\n";
 
-	const void *nothing = NULL;
+	const void *nothing = nullptr;
 	const char *devnull = "/dev/null";
 	const char *notsu = "/system/bin/su_";
 	const char *unaligned = notsu + 3;
@@ -222,6 +220,8 @@ static int c_main(long argc, char **argv, char **envp)
 		unaligned
 	};
 
+	constexpr int num_tests = sizeof(tests) / sizeof(tests[0]);
+
 	int j = 0;
 
 start_loop:
@@ -237,7 +237,7 @@ start_loop:
 	
 	j++;
 	
-	if (j < 4)
+	if (j < num_tests)
 		goto start_loop;
 
 	return 0;
