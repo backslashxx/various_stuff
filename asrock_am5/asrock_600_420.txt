@@ -1,0 +1,39 @@
+# Asrock AM5 600 Series 4.20, ComboAM5 PI 1.3.0.1.
+#
+# Patches
+#  + Fixed mode voltage unlock
+#  + AMI Advanced Form Unlocked
+#
+# Should apply on X670/E, B650/E and A620, and on DeskMini X600.
+# These patches will only apply whats applicable for your board.
+#
+# Apply via UEFIPatch - https://github.com/LongSoft/UEFITool/releases/tag/0.28.0
+#
+# Then 
+#       Flashback - CREATIVE.ROM 
+#       Flashback via BIOSUBU - PSPBIOS.IMG
+#
+#
+# Feel free to share this anywhere. 
+# No warranties.
+# - \x ;)
+
+
+# AmiSetup  
+# unlock voltage controls
+899407D7-99FE-43D8-9A21-79EC328CAC21 10 P:0A8246020907:0A8247020907     
+# raise maximum soc voltage ceiling 1.3V (0x514) - > 1.6V (0x640)
+# 899407D7-99FE-43D8-9A21-79EC328CAC21 10 P:0794F301F401F72701F105011411000014050500:0794F301F401F72701F105011411000040060500       
+
+# AodDXE
+# Unlock PBO "Advanced" Settings on some boards (B650M-H/M.2, B850M-X)
+# enable is advanced!
+# 442BA91E-B0A8-499F-94F7-2E922C9AAE0D 10 P:00101000FF000907..001000FF0907..000000000907..000000012902:00101000FF000907..001000FF0907..000000000907..000000022902
+# unhide a few more things
+442BA91E-B0A8-499F-94F7-2E922C9AAE0D 10 P:0A82450A01000000000000000F0F:0A8247020A824702170229020F0F  
+# lift vsoc limit without ln2 mode
+442BA91E-B0A8-499F-94F7-2E922C9AAE0D 10 P:079A69016A01DB0001F08B011012000000001405000005000000:079A69016A01DB0001F08B01101200000000C409000005000000  
+
+# eof
+
+
