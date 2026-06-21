@@ -1,0 +1,34 @@
+# Patch string format
+# FileGuid SectionType PatchType:FindPatternOrOffset:ReplacePattern 
+# Please ensure that the latest symbol in patch string is space
+
+# Possible section types:
+#  PE32 image                    10
+#  Position-independent code     11
+#  TE Image                      12
+#  DXE Dependency                13
+#  Version information           14
+#  User interface string         15
+#  16-bit code                   16
+#  Guided freeform               18
+#  Raw data                      19
+#  PEI Dependency                1B
+#  SMM Dependency                1C
+# Please do not try another section types, it can make the resulting image broken
+
+# Possible patch types:
+#  P - pattern-based, first parameter is a pattern to find, second - a pattern to replace
+#  O - offset-based, first parameter is hexadecimal offset, second - a pattern to replace
+# Patterns can have . as "any possible value" symbol
+
+
+# coffee 
+# asus c6h 8601 | show spread spectrum options 
+# 899407D7-99FE-43D8-9A21-79EC328CAC21 10 P:05915801590149011F00F900101000FF000907050000000009070400000001090706001000FF290229022902:2902290205915801590149011F00F900101000FF000907050000000009070400000001090706001000FF2902  
+# not working asus begger shit hiding real varname?
+
+
+# asus c6h 8601 | unlocks "CPU Voltage Frequency " and lifts limit 500k -> 800k
+899407D7-99FE-43D8-9A21-79EC328CAC21 10 P:079419041A04F6011F003E0610112C01F4013200:079419041A04F6011F003E0610112C0120033200  
+899407D7-99FE-43D8-9A21-79EC328CAC21 10 P:4600720065007100750065006E00630079002000720061006E00670065003A0020003300300030006B007E003500300030006B0048007A:4600720065007100750065006E00630079002000720061006E00670065003A0020003300300030006B007E003800300030006B0048007A           
+
