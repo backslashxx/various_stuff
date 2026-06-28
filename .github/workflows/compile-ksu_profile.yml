@@ -1,0 +1,46 @@
+name: build ksu profile
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Setup zig
+        uses: mlugg/setup-zig@v2
+        with:
+          version: master
+
+      - name: grab sstrip from ELFkickers
+        run: |
+          curl -L https://www.muppetlabs.com/~breadbox/pub/software/ELFkickers-3.2.tar.gz -o sstrip.tar.gz
+          tar xf sstrip.tar.gz
+          make -C ELFkickers-3.2 sstrip
+          cp ELFkickers-3.2/sstrip/sstrip .
+
+      - name: compile via zigcc
+        run: |
+          pwd
+          chmod +x sstrip
+          mkdir binaries
+
+          zig cc -target aarch64-linux -s -Oz  ksu_uapi/profile.c -o binaries/profile
+          zig cc -target arm-linux -s -Oz  ksu_uapi/profile.c -o binaries/profile32
+
+          wc -c binaries/profile*
+          file binaries/profile*
+          
+          for file in binaries/*; do ./sstrip $file ; done
+          
+          wc -c binaries/profile*
+          file binaries/profile*          
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: binaries
+          path: binaries/
