@@ -75,9 +75,13 @@ int main(int argc, char **argv, char **envp)
 	if (argv[1] && !strcmp(argv[1], "--setumount") && argv[2] && argv[3])
 		goto setumount;
 
+	if (argv[1] && !strcmp(argv[1], "--create") && argv[2] && argv[3])
+		goto create_profile;
+
 	// help here
 	printf("%s --getuidinfo 12345\t to print info on app with uid\n", argv[0]);
 	printf("%s --setumount 12345 1/0\t to toggle umount for app with uid\n", argv[0]);
+	printf("%s --create 12345 com.google.chrome\t to create a new profile\n", argv[0]);
 
 	return 0;
 
@@ -186,8 +190,42 @@ setumount:
 	}
 
 	printf("Success: umount set to %d app with uid: %d \n", !!atoi(argv[3]), req_uid);
+	return 0;
 
 
+create_profile:
+	;
+	ret = syscall(SYS_ioctl, fd, KSU_IOCTL_GET_MANAGER_UID, (long)&cmd);
+	if (ret || !cmd.uid) {
+		printf("Error: Manager not installed!\n");
+		return 1;
+	}
+
+	req_uid = atoi(argv[2]);
+	if (req_uid < 10000 || !argv[3]) {
+		printf("Error: Usage --create <uid> <package_name>\n");
+		return 1;
+	}
+
+	if (!!syscall(SYS_setuid, cmd.uid)) {
+		printf("Error: setuid fail!\n");
+		return 1;
+	}
+
+	profile.version = KSU_APP_PROFILE_VER;
+	profile.curr_uid = req_uid;
+	strncpy(profile.key, argv[3], sizeof(profile.key) - 1);
+
+	profile.allow_su = false;
+	profile.nrp_config.use_default = true;
+	profile.nrp_config.profile.umount_modules = false;
+
+	if (!!syscall(SYS_ioctl, fd, KSU_IOCTL_SET_APP_PROFILE, (long)&profile)) {
+		printf("Error: Failed to create app profile!\n");
+		return 1;
+	}
+
+	printf("Success: created new profile for %s (UID: %d)\n", profile.key, req_uid);
 	return 0;
 
 
