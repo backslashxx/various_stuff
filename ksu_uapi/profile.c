@@ -78,11 +78,14 @@ int main(int argc, char **argv, char **envp)
 	if (argv[1] && !strcmp(argv[1], "--create") && argv[2] && argv[3])
 		goto create_profile;
 
+	if (argv[1] && !strcmp(argv[1], "--setroot") && argv[2] && argv[3])
+		goto set_root;
+
 	// help here
 	printf("%s --getuidinfo 12345\t to print info on app with uid\n", argv[0]);
 	printf("%s --setumount 12345 1/0\t to toggle umount for app with uid\n", argv[0]);
 	printf("%s --create 12345 com.google.chrome\t to create a new profile\n", argv[0]);
-
+	printf("%s --setroot 12345 0/1\t to set root rights to uid\n", argv[0]);
 	return 0;
 
 getuidinfo:
@@ -182,7 +185,7 @@ setumount:
 
 	// enable umount here
 	profile.nrp_config.use_default = false;
-	profile.nrp_config.profile.umount_modules = !!atoi(argv[3]);
+	profile.nrp_config.profile.umount_modules = argv[3][0] == 49; // 49 is 1 on ascii
 
 	if (!!syscall(SYS_ioctl, fd, KSU_IOCTL_SET_APP_PROFILE, (long)&profile)) {
 		printf("Error: set umount fail!\n");
@@ -228,6 +231,53 @@ create_profile:
 	printf("Success: created new profile for %s (UID: %d)\n", profile.key, req_uid);
 	return 0;
 
+set_root:
+	;
 
+	ret = syscall(SYS_ioctl, fd, KSU_IOCTL_GET_MANAGER_UID, (long)&cmd);
+	if (ret || !cmd.uid) {
+		printf("Error: Manager not installed!\n");
+		return 1;
+	}
+
+	req_uid = atoi(argv[2]);
+	if (req_uid < 10000) {
+		printf("Error: bad uid!\n");
+		return 1;
+	}
+
+	if (!!syscall(SYS_setuid, cmd.uid)) {
+		printf("Error: setuid fail!\n");
+		return 1;
+	}
+
+	profile.version = KSU_APP_PROFILE_VER;
+	profile.curr_uid = req_uid;
+
+	if (!!syscall(SYS_ioctl, fd, KSU_IOCTL_GET_APP_PROFILE, (long)&profile)) {
+		printf("Error: no profile!\n");
+		return 1;
+	}
+
+	if (!profile.key[0]) {
+		printf("Error: no profile!\n");
+		return 1;
+	}
+
+	profile.allow_su = argv[3][0] == 49; // 49 is 1 on ascii
+	
+	if (profile.allow_su) {
+		memset(&profile.nrp_config, 0, sizeof(profile.rp_config));
+		profile.rp_config.use_default = true;
+		__builtin_memcpy(profile.rp_config.profile.selinux_domain, "u:r:ksu:s0", sizeof("u:r:ksu:s0"));
+	}
+
+	if (!!syscall(SYS_ioctl, fd, KSU_IOCTL_SET_APP_PROFILE, (long)&profile)) {
+		printf("Error: set root fail!\n");
+		return 1;
+	}
+
+	printf("Success: root set to %d for %s with uid: %d \n", argv[3][0] == 49, profile.key, req_uid);
+	return 0;
 
 }
