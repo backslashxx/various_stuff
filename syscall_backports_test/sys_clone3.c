@@ -14,13 +14,16 @@
 int c_main(int argc, char *argv[], char *envp[])
 {
 	char *str = "syscall exists!\nsyscall does NOT exist!\n";
+	size_t len = 16;
 
 	int n = __syscall(SYS_clone3, NULL, NULL, NONE, NONE, NONE, NONE);
 
-	if (n == -ENOSYS)
+	if (n == -ENOSYS) {
 		str = str + 16;
+		len = 24;
+	}
 
-	__syscall(SYS_write, 1, (long)str, 24, NONE, NONE, NONE);
+	__syscall(SYS_write, 1, (long)str, len, NONE, NONE, NONE);
 
 	return 0;
 }
