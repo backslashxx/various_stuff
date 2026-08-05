@@ -1,0 +1,6 @@
+id=init_rc
+name=initrc test module
+version=v1.0.0
+versionCode=100
+author=xx
+description=Test init.rc
