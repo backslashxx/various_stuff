@@ -28,7 +28,8 @@ jobs:
           chmod +x sstrip
           mkdir binaries
 
-          ./android-ndk-r23b/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android21-clang -Oz -s -Wl,--gc-sections,--strip-all,-z,norelro -fno-unwind-tables -Wl,--entry=__start -flto -fmerge-all-constants -static -nostartfiles -ffreestanding kernelsu/tinyfs_su/su.c -o binaries/tinysu
+          ./android-ndk-r23b/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android21-clang -Oz -s -Wl,--gc-sections,--strip-all,-z,norelro -fno-unwind-tables -Wl,--entry=__start -flto -fmerge-all-constants -static -nostartfiles -ffreestanding kernelsu/tinyfs_su/su.c -o binaries/tinysu_bare
+          ./android-ndk-r23b/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android21-clang -Oz -s -Wl,--gc-sections,--strip-all,-z,norelro -fno-unwind-tables kernelsu/tinyfs_su/su-ndk.c -o binaries/tinysu_dynamic
           wc -c binaries/*
           file binaries/*
           for file in binaries/*; do ./sstrip $file ; done
