@@ -1,0 +1,37 @@
+name: ksu_waitsys
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          repository: KernelSU2/waitsys
+
+      - name: grab ndk
+        run: |
+          curl -L https://dl.google.com/android/repository/android-ndk-r23b-linux.zip -o ndk-linux.zip
+          unzip ndk-linux.zip > /dev/null 2>&1
+
+      - name: compile via ndk
+        run: |
+          pwd
+          mkdir binaries
+
+          NDK_BIN="./android-ndk-r23b/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          $NDK_BIN/armv7a-linux-androideabi21-clang++ -std=c++20 -Oz -fno-exceptions -fno-rtti -I. -Istubs/include waitsys.cpp logging.cpp stubs/stub_utils.cpp stubs/stub_binder.cpp -llog -o binaries/waitsys_arm
+
+          ls -lh binaries/
+          file binaries/*
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: binaries
+          path: binaries/
+
+
