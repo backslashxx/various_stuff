@@ -30,6 +30,7 @@ jobs:
 
           cmake --build build
           
+          $NDK_PATH/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip build/waitsys
           cp build/waitsys binaries/waitsys_arm32
           ls -lh binaries/
           file binaries/*
