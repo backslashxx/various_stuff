@@ -12,6 +12,9 @@ jobs:
         with:
           repository: KernelSU2/waitsys
 
+      - name: ninja
+        run: sudo apt-get update && sudo apt-get install -y ninja-build
+
       - name: grab ndk
         run: |
           curl -L https://dl.google.com/android/repository/android-ndk-r23b-linux.zip -o ndk-linux.zip
@@ -21,10 +24,13 @@ jobs:
         run: |
           pwd
           mkdir binaries
+          
+          NDK_PATH="$PWD/android-ndk-r23b"
+          cmake -B build -G Ninja -DCMAKE_TOOLCHAIN_FILE=$NDK_PATH/build/cmake/android.toolchain.cmake -DANDROID_ABI=armeabi-v7a -DANDROID_PLATFORM=android-21 -DANDROID_STL=c++_static -DCMAKE_BUILD_TYPE=Release
 
-          NDK_BIN="./android-ndk-r23b/toolchains/llvm/prebuilt/linux-x86_64/bin"
-          $NDK_BIN/armv7a-linux-androideabi21-clang++ -std=c++20 -Oz -fno-exceptions -fno-rtti -I. -Istubs/include waitsys.cpp logging.cpp stubs/stub_utils.cpp stubs/stub_binder.cpp -llog -o binaries/waitsys_arm
-
+          cmake --build build
+          
+          cp build/waitsys binaries/waitsys_arm32
           ls -lh binaries/
           file binaries/*
 
