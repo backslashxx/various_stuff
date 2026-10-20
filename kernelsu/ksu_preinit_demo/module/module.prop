@@ -1,0 +1,7 @@
+id=ksu_preinit_demo
+name=ksu_preinit_demo
+version=v0.0.1
+versionCode=001
+author=xx
+description=dmesg | grep ksu_preinit_demo
+

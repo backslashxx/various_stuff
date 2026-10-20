@@ -1,0 +1,8 @@
+small module demo on ksu preinit feature
+- /src, simple freestanding / static elf shit
+- /module/preinit binary and config
+- everything else are module shit
+
+- ksu_preinit_demo.zip, demo zip
+
+ref: https://kernelsu.org/guide/module.html#preinit
