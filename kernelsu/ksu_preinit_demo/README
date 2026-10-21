@@ -1,8 +1,9 @@
 small module demo on ksu preinit feature
 - /src, simple freestanding / static elf shit
+- /lkm_src, start your own kernel autism
 - /module/preinit binary and config
 - everything else are module shit
 
-- ksu_preinit_demo.zip, demo zip
+- ksu_preinit_demo.zip, demo zip, no lkm included tho
 
 ref: https://kernelsu.org/guide/module.html#preinit

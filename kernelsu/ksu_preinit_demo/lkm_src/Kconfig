@@ -1,0 +1,9 @@
+menu "LKM HELLO"
+
+config LKM_HELLO
+	tristate "LKM HELLO"
+	default m
+	help
+	  simple LKM demo
+
+endmenu
