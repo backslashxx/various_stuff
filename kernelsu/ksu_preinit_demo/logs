@@ -1,0 +1,50 @@
+mojito:/ # dmesg | grep -B5 -A30 "preinit: sys"                                                                                                                                                                 
+[    1.996617] EXT4-fs (dm-2): mounted filesystem without journal. Opts: barrier=1,discard
+[    1.999399] EXT4-fs (dm-3): mounted filesystem without journal. Opts: barrier=1,discard
+[    2.000960] EXT4-fs (dm-4): mounted filesystem without journal. Opts: barrier=1,discard
+[    2.002803] EXT4-fs (dm-1): mounted filesystem without journal. Opts: barrier=1,discard
+[    2.003939] EXT4-fs (dm-0): mounted filesystem without journal. Opts: barrier=1,discard
+[    2.008751] KernelSU: preinit: sys_execve: /system/bin/init 
+[    2.008759] KernelSU: preinit: sys_execve: /system/bin/init with selinux_setup! 
+[    2.008899] KernelSU: preinit: remove preinit execve branches
+[    2.008958] KernelSU: preinit: mmap_page: 0x7facbda000 
+[    2.008961] KernelSU: preinit: debug: envp: 0xb400007fa3a0d000 
+[    2.008963] KernelSU: preinit: debug: envp: 0xb400007fa3a090c0 
+[    2.008965] KernelSU: preinit: debug: envp: 0xb400007fa3a00180 
+[    2.008971] KernelSU: preinit: syscall(SYS_execve, 0x7facbda040, 0x7facbda060, 0x7facbda078);
+[    2.009544] KernelSU: preinit: sys_execve runner returned: 0 
+[    2.009586] 8: 44 output lines suppressed due to ratelimiting
+[    2.010821] ksu_preinit: KernelSU preinit ELF running on aarch64! / buildinfo: Clang 23.1.2 on zig 0.18.0-dev.362+705a6b4ef stdc: 202311L
+[    2.013086] ksu_preinit: bootcount 0 -> 1
+[    2.013540] ksu_preinit: [ksu_preinit_demo] start
+[    2.013938] ksu_preinit_demo: Hello world!
+[    2.013944] hello
+[    2.013945] KSU=true
+[    2.013948] KSU_PREINIT=1
+[    2.013951] MODID=ksu_preinit_demo
+[    2.013954] PREINIT_DIR=/metadata/vold/ksu/preinit/ksu_preinit_demo
+[    2.013976] PATH=/system/bin:/vendor/bin
+[    2.013980] ksu_preinit_demo: print shit on dmesg!
+[    2.014057] ksu_preinit: [ksu_preinit_demo] exec hello ok
+[    2.014095] KernelSU: sys_reboot: magic: 0xdeadbeef id: 0xcafebabe pid: 512 comm: 8 
+[    2.014100] KernelSU: ksu fd installed: 4 for pid 512
+[    2.014102] KernelSU: [512] install ksu fd: 4
+[    2.014677] KernelSU: kallsyms_lookup_retry: printk addr: 0xffffff8e3b73b570 
+[    2.015019] LKM: Hello World!
+[    2.015086] ksu_preinit: [ksu_preinit_demo] insmod lkm_hello.ko ok
+[    2.015107] ksu_preinit_write: hello
+[    2.015122] ksu_preinit: [ksu_preinit_demo] done
+[    2.015163] KernelSU: ksu fd released
+[    2.084146] init: [libfstab] Using Android DT directory /proc/device-tree/firmware/android/
+[    2.088374] init: Opening SELinux policy
+[    2.095665] init: Loading SELinux policy
+[    2.101375] SELinux: 32768 avtab hash slots, 81966 rules.
+[    2.125850] SELinux: 32768 avtab hash slots, 81966 rules.
+[    2.125942] SELinux:  1 users, 4 roles, 3725 types, 0 bools, 1 sens, 1024 cats
+[    2.125945] SELinux:  108 classes, 81966 rules
+[    2.129639] SELinux:  policy capability network_peer_controls=1
+mojito:/ # uname -a
+Linux localhost 4.14.357-openela-g71dd8bdbd892 #56 SMP PREEMPT Wed Oct 21 23:49:57 PST 2026 aarch64 Toybox
+mojito:/ # 
+
+
