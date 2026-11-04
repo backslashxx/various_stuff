@@ -135,6 +135,134 @@ static int compat_kallsyms_lookup_size_offset(unsigned long addr, unsigned long 
 
 	return 1;
 }
+#define kallsyms_lookup_size_offset compat_kallsyms_lookup_size_offset
+
+static uintptr_t aarch64_insn_adrp_get_offset_fn = 0x0;
+static __nocfi int32_t __aarch64_insn_adrp_get_offset(uint32_t insn)
+{	
+	return ((typeof(__aarch64_insn_adrp_get_offset) *)aarch64_insn_adrp_get_offset_fn)(insn);
+}
+#define aarch64_insn_adrp_get_offset __aarch64_insn_adrp_get_offset
+
+static size_t get_ksym_size(uintptr_t symbol_addr, size_t retfail)
+{
+	unsigned long offset = 0;
+	unsigned long symbolsize = 0;
+
+	// means lookup failed, just return retfail
+	if (!kallsyms_lookup_size_offset(symbol_addr, &symbolsize, &offset))
+		return retfail;		
+
+	if (!symbolsize && !offset)
+		return retfail;
+
+	return symbolsize;
+}
+
+/**
+ * locate currently used sys_call_table.
+ */
+static int hunt_sct_adrp(uintptr_t insn_addr_start, ptrdiff_t scan_depth)
+{
+	uintptr_t insn_p = insn_addr_start;
+	uintptr_t insn_end = insn_addr_start + scan_depth;
+	uint32_t raw_insn = 0;
+
+scan:
+	if (insn_p >= insn_end)
+		return -ERANGE;
+
+	if (!!copy_from_kernel_nofault((void *)&raw_insn, (void *)insn_p, sizeof(uint32_t)))
+		goto increment_adrp;
+
+	// aarch64_insn_is_##abbr, arch/arm64/include/asm/insn.h
+	if (!aarch64_insn_is_adrp(raw_insn))
+		goto increment_adrp;
+
+	pr_info("0x%lx insn is adrp! .inst 0x%lx \n", insn_p, raw_insn);
+
+	uintptr_t pc_pg = insn_p & ~0xFFFUL; // target, aligned to 4096
+	uintptr_t tgt = pc_pg + (long)aarch64_insn_adrp_get_offset(raw_insn);
+
+	pr_info("tgt: 0x%lx \n", tgt);
+
+	constexpr int max_tries = 4096 / 8;
+
+	uintptr_t pg_start = tgt;
+	uintptr_t curr = tgt;
+	uintptr_t pbuf;
+	uintptr_t dummy;
+	int tries = 0;
+
+scan_pg:
+	if (tries > max_tries)
+		goto increment_adrp;
+
+	if (!!copy_from_kernel_nofault((void *)&pbuf, (void *)curr, sizeof(uintptr_t)))
+		goto increment_pg_p;
+
+	if (!!copy_from_kernel_nofault((void *)&dummy, (void *)pbuf, sizeof(uintptr_t)))
+		goto increment_pg_p;
+
+	char buf[KSYM_SYMBOL_LEN];
+
+	if (!(sprint_symbol(buf, pbuf) > 0))
+		goto increment_pg_p;
+
+	if (!strstr(buf, "sys_io_setup"))
+		goto increment_pg_p;
+
+	pr_info("symbol: %s @ 0x%lx &sys_call_table[0]: 0x%lx\n", buf, pbuf, curr);
+	return 0;
+
+increment_pg_p:
+	tries++;
+	curr = curr + sizeof(uintptr_t);
+	goto scan_pg;
+
+increment_adrp:
+	insn_p = insn_p + sizeof(uint32_t);
+	goto scan;
+
+}
+
+static int resolve_svc_handler(const char *native_sym, const char *compat_sym, ptrdiff_t scan_depth)
+{
+	uintptr_t target = kallsyms_lookup_name(native_sym);
+	if (!target)
+		return -ENOENT;
+
+	ssize_t new_scan_depth = get_ksym_size(target, scan_depth);
+	pr_info("target: %s @ 0x%lx sz: %zu\n", native_sym, target, new_scan_depth);
+
+	int ret = hunt_sct_adrp(target, new_scan_depth);
+	if (ret)
+		return ret;
+
+	return 0;
+}
+
+static void hunt_sys_call_table(void)
+{
+	aarch64_insn_adrp_get_offset_fn = (uintptr_t)kallsyms_lookup_name("aarch64_insn_adrp_get_offset");
+	if (!aarch64_insn_adrp_get_offset_fn)
+		return;
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 19, 0)
+	int ret = resolve_svc_handler("do_el0_svc", "do_el0_svc_compat", 64 * 4);
+	if (!ret)
+		return;
+
+	ret = resolve_svc_handler("el0_svc_handler", "el0_svc_compat_handler", 64 * 4);
+	if (!ret)
+		return;
+
+	// for heavily inlined shit
+	resolve_svc_handler("el0_svc", "el0_svc_compat", 256 * 4);
+#else
+	resolve_svc_handler("el0_svc", "el0_svc_compat", 16 * 4);
+#endif
+}
 
 static int __init lkm_template_init(void) 
 {
@@ -156,6 +284,8 @@ static int __init lkm_template_init(void)
 
 	ret = compat_kallsyms_lookup_size_offset(verify, &sz, &off);
 	pr_info("compat_kallsyms_lookup_size_offset: ret: %d size: %lu offset: %lu \n", ret, sz, off);
+
+	hunt_sys_call_table();
 
 	return -EAGAIN;
 }
