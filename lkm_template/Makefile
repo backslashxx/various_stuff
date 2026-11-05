@@ -48,3 +48,11 @@ CFLAGS_REMOVE_main.o += -enable-trivial-auto-var-init-zero-knowing-it-will-be-re
 CFLAGS_main.o += -fno-stack-protector -fno-stack-check
 CFLAGS_REMOVE_main.o += -fsanitize=shadow-call-stack
 
+MDIR := $(realpath $(dir $(abspath $(lastword $(MAKEFILE_LIST)))))
+$(info -- KDIR: $(KDIR))
+$(info -- MDIR: $(MDIR))
+
+modules:
+	make -C $(KDIR) M=$(MDIR) EXTRA_CFLAGS="-w" modules
+clean:
+	make -C $(KDIR) M=$(MDIR) clean
