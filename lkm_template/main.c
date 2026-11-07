@@ -167,12 +167,91 @@ static int compat_kallsyms_lookup_size_offset(unsigned long addr, unsigned long 
 }
 #define kallsyms_lookup_size_offset compat_kallsyms_lookup_size_offset
 
+// fwd
+static uintptr_t register_kprobe_fn;
+static uintptr_t unregister_kprobe_fn;
+static uintptr_t kp_kallsyms_lookup_name(const char *name);
+
+static int lkm_boostrap(void)
+{
+	register_kprobe_fn = symbol_get(register_kprobe);
+	unregister_kprobe_fn = symbol_get(unregister_kprobe);
+	if (!register_kprobe_fn || !unregister_kprobe_fn) {
+		pr_info("kprobe symbols missing or not exported! \n");
+		goto scan;
+	}
+
+	// no-op for kernel symbols, keep as a reminder
+	// symbol_put(register_kprobe);
+	// symbol_put(unregister_kprobe);
+
+	// now we can try to get kallsyms_lookup_name via kp
+	kallsyms_lookup_name_fn = kp_kallsyms_lookup_name("kallsyms_lookup_name");
+	if (kallsyms_lookup_name_fn)
+		goto found;
+scan:;
+	constexpr char sym[] = "sprint_symbol";
+	uintptr_t addr = (uintptr_t)&sprint_symbol;
+	pr_info("%s: %s @ 0x%lx \n", __func__, sym, addr);
+
+	int ret = bootstrap_kallsyms_lookup_name(addr);
+	if (ret)
+		return ret;
+
+found:;
+	uintptr_t verify = kallsyms_lookup_name(sym);
+	pr_info("verify result: 0x%lx \n", verify);
+
+	unsigned long sz = 0;
+	unsigned long off = 0;
+
+	ret = compat_kallsyms_lookup_size_offset(verify, &sz, &off);
+	pr_info("compat_kallsyms_lookup_size_offset: ret: %d size: %lu offset: %lu \n", ret, sz, off);
+
+	return 0;
+}
+
 static uintptr_t aarch64_insn_adrp_get_offset_fn = 0x0;
 static __nocfi int32_t __aarch64_insn_adrp_get_offset(uint32_t insn)
 {	
 	return ((typeof(__aarch64_insn_adrp_get_offset) *)aarch64_insn_adrp_get_offset_fn)(insn);
 }
 #define aarch64_insn_adrp_get_offset __aarch64_insn_adrp_get_offset
+
+static uintptr_t register_kprobe_fn = 0x0;
+static __nocfi int __register_kprobe(struct kprobe *p)
+{
+	if (!register_kprobe_fn)
+		register_kprobe_fn = (uintptr_t)kallsyms_lookup_name("register_kprobe");
+	if (!register_kprobe_fn)
+		return -ENOENT;
+	return ((typeof(__register_kprobe) *)register_kprobe_fn)(p);
+}
+#define register_kprobe __register_kprobe
+
+static uintptr_t unregister_kprobe_fn = 0x0;
+static __nocfi void __unregister_kprobe(struct kprobe *p)
+{
+	if (!unregister_kprobe_fn)
+		unregister_kprobe_fn = (uintptr_t)kallsyms_lookup_name("unregister_kprobe");
+	if (!unregister_kprobe_fn)
+		return;
+	((typeof(__unregister_kprobe) *)unregister_kprobe_fn)(p);
+}
+#define unregister_kprobe __unregister_kprobe
+
+static uintptr_t kp_kallsyms_lookup_name(const char *name)
+{
+	struct kprobe kp = { .symbol_name = name };
+	if (!!register_kprobe(&kp))
+		return 0x0;
+
+	uintptr_t addr = (uintptr_t)kp.addr;
+	unregister_kprobe(&kp);
+
+	pr_info("%s: success! %s at 0x%lx\n", __func__, name, addr);
+	return addr;
+}
 
 static size_t get_ksym_size(uintptr_t symbol_addr, size_t retfail)
 {
@@ -298,24 +377,9 @@ static int __init lkm_template_init(void)
 {
 	pr_info("LKM: Hello World!\n");
 
-	constexpr char sym[] = "sprint_symbol";
-	uintptr_t addr = (uintptr_t)&sprint_symbol;
-	pr_info("%s: %s @ 0x%lx \n", __func__, sym, addr);
-
-	int ret = bootstrap_kallsyms_lookup_name(addr);
-	if (ret)
-		return ret;
-
-	uintptr_t verify = kallsyms_lookup_name(sym);
-	pr_info("verify result: 0x%lx \n", verify);
-
-	unsigned long sz = 0;
-	unsigned long off = 0;
-
-	ret = compat_kallsyms_lookup_size_offset(verify, &sz, &off);
-	pr_info("compat_kallsyms_lookup_size_offset: ret: %d size: %lu offset: %lu \n", ret, sz, off);
-
-	hunt_sys_call_table();
+	int ret = lkm_boostrap();
+	if (!ret)
+		hunt_sys_call_table();
 
 	return -EAGAIN;
 }
