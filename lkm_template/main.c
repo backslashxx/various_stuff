@@ -174,6 +174,8 @@ static uintptr_t kp_kallsyms_lookup_name(const char *name);
 
 static int lkm_boostrap(void)
 {
+	constexpr char sym[] = "sprint_symbol";
+
 	register_kprobe_fn = symbol_get(register_kprobe);
 	unregister_kprobe_fn = symbol_get(unregister_kprobe);
 	if (!register_kprobe_fn || !unregister_kprobe_fn) {
@@ -190,7 +192,6 @@ static int lkm_boostrap(void)
 	if (kallsyms_lookup_name_fn)
 		goto found;
 scan:;
-	constexpr char sym[] = "sprint_symbol";
 	uintptr_t addr = (uintptr_t)&sprint_symbol;
 	pr_info("%s: %s @ 0x%lx \n", __func__, sym, addr);
 
@@ -199,7 +200,7 @@ scan:;
 		return ret;
 
 found:;
-	uintptr_t verify = kallsyms_lookup_name(sym);
+	uintptr_t verify = (uintptr_t)kallsyms_lookup_name(sym);
 	pr_info("verify result: 0x%lx \n", verify);
 
 	unsigned long sz = 0;
