@@ -373,6 +373,56 @@ static void hunt_sys_call_table(void)
 #endif
 }
 
+static void hunt_code_cave(void)
+{
+	// look for code cave inside __entry_text_start[], __entry_text_end[];
+	uintptr_t entry_text_start_p = (uintptr_t)kallsyms_lookup_name("__entry_text_start");
+	uintptr_t entry_text_end_p = (uintptr_t)kallsyms_lookup_name("__entry_text_end");
+	if (!entry_text_start_p || !entry_text_end_p)
+		return;
+
+	// d503201f
+	uintptr_t start = entry_text_start_p;
+	uintptr_t end = entry_text_end_p;
+	uintptr_t curr = start;
+
+	uint32_t raw_insn;
+	uint32_t cnt = 0; 
+
+	uintptr_t addr_end = 0;
+	uint32_t highest = 0;
+
+start_scan:
+	if (curr >= end)
+		goto bail;
+
+
+	if (!!copy_from_kernel_nofault(&raw_insn, (void *)curr, sizeof(uint32_t)))
+		goto reset_cnt;
+
+	if (raw_insn != 0xd503201fU) // aarch64 nop
+		goto reset_cnt;
+
+
+	cnt++;
+	addr_end = curr;
+	goto increment;
+
+reset_cnt:
+	if (cnt > highest)
+		highest = cnt;
+
+	cnt = 0;
+increment:
+	curr = curr + 4;
+	goto start_scan;
+
+
+bail:
+	pr_info("%s: highest: %u end_addr: 0x%lx \n", __func__, highest, end_addr);
+	return;
+}
+
 static int __init lkm_template_init(void) 
 {
 	pr_info("LKM: Hello World!\n");
