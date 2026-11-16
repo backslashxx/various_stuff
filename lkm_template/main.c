@@ -377,10 +377,12 @@ static void hunt_sys_call_table(void)
 static void hunt_code_cave(void)
 {
 	// look for code cave inside __entry_text_start[], __entry_text_end[];
-	uintptr_t entry_text_start_p = (uintptr_t)kallsyms_lookup_name("__entry_text_start");
-	uintptr_t entry_text_end_p = (uintptr_t)kallsyms_lookup_name("__entry_text_end");
+	uintptr_t entry_text_start_p = (uintptr_t)kallsyms_lookup_name("_stext");
+	uintptr_t entry_text_end_p = (uintptr_t)kallsyms_lookup_name("_etext");
 	if (!entry_text_start_p || !entry_text_end_p)
 		return;
+
+	char cbuf[KSYM_SYMBOL_LEN];
 
 	// d503201f
 	uintptr_t start = entry_text_start_p;
@@ -413,6 +415,8 @@ reset_cnt:
 	if (cnt > highest) {
 		highest = cnt;
 		best_addr_end = addr_end;
+		sprint_symbol(cbuf, best_addr_end);
+		pr_info("%s: highest: %u end_addr: 0x%lx owned by: %s\n", __func__, highest, best_addr_end, cbuf);
 	}
 
 	cnt = 0;
@@ -420,11 +424,8 @@ increment:
 	curr = curr + 4;
 	goto start_scan;
 bail:;
-	char cbuf[KSYM_SYMBOL_LEN] = { 0 };
-	sprint_symbol(cbuf, best_addr_end);
-	pr_info("%s: highest: %u end_addr: 0x%lx owned by: %s\n", __func__, highest, best_addr_end, cbuf);
-
-
+//	sprint_symbol(cbuf, best_addr_end);
+//	pr_info("%s: highest: %u end_addr: 0x%lx owned by: %s\n", __func__, highest, best_addr_end, cbuf);
 	return;
 }
 
