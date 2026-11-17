@@ -370,6 +370,27 @@ bail:;
 	return;
 }
 
+asm(
+	".text				\n\t"
+	".p2align 4			\n\t"
+	".global a_bunch_of_nops	\n\t"
+"a_bunch_of_nops:			\n\t"
+	".rept 256			\n\t"
+	"nop				\n\t"
+	".endr				\n\t"
+);
+__attribute__((used)) static void a_bunch_of_nops(void);
+
+static void measure_nop_distance(void)
+{
+	uintptr_t stext = (uintptr_t)kallsyms_lookup_name("_stext");
+	uintptr_t etext = (uintptr_t)kallsyms_lookup_name("_etext");
+
+	pr_info("%s: a_bunch_of_nops: 0x%lx stext: 0x%lx delta: %ld \n", __func__, (uintptr_t)a_bunch_of_nops, stext, __builtin_labs((uintptr_t)a_bunch_of_nops - stext));
+	pr_info("%s: a_bunch_of_nops: 0x%lx etext: 0x%lx delta: %ld \n", __func__, (uintptr_t)a_bunch_of_nops, etext, __builtin_labs((uintptr_t)a_bunch_of_nops - etext));
+	pr_info("%s: stext: 0x%lx etext: 0x%lx delta: %ld \n", __func__, stext, etext, __builtin_labs(stext - etext));
+}
+
 static int __init lkm_template_init(void) 
 {
 	pr_info("LKM: Hello World!\n");
@@ -380,6 +401,8 @@ static int __init lkm_template_init(void)
 	
 	hunt_sys_call_table();
 	hunt_code_cave();
+	
+	measure_nop_distance();
 
 	return -EAGAIN;
 }
